@@ -8,7 +8,13 @@ import de.robv.android.xposed.callbacks.XC_InitPackageResources.InitPackageResou
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 import io.github.soclear.oneuix.BuildConfig
 import io.github.soclear.oneuix.data.Package
+import io.github.soclear.oneuix.hook.systemui.AOD
 import io.github.soclear.oneuix.hook.systemui.ESIM
+import io.github.soclear.oneuix.hook.systemui.HideBatteryIcon
+import io.github.soclear.oneuix.hook.systemui.Notification
+import io.github.soclear.oneuix.hook.systemui.Other
+import io.github.soclear.oneuix.hook.systemui.QS
+import io.github.soclear.oneuix.hook.systemui.StatusBar
 import io.github.soclear.oneuix.hook.systemui.powermenu.PowerMenu
 import io.github.soclear.oneuix.hook.util.PreferenceProvider
 import io.github.soclear.oneuix.hook.util.addAssetPath
@@ -239,7 +245,7 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                     Android.setBlockableNotificationChannel()
                 }
                 if (preference.systemUI.other.autoExpandNotifications) {
-                    SystemUI.autoExpandNotifications(lpparam)
+                    Notification.autoExpandNotifications(lpparam)
                 }
 
                 run {
@@ -251,7 +257,7 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                         if (preference.systemUI.statusBar.modifyStatusBarRightPadding) {
                             preference.systemUI.statusBar.statusBarRightPaddingDp
                         } else null
-                    SystemUI.setStatusBarPaddingDp(lpparam, leftPaddingDp, rightPaddingDp)
+                    StatusBar.setStatusBarPaddingDp(lpparam, leftPaddingDp, rightPaddingDp)
                 }
 
                 run {
@@ -261,15 +267,15 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                     val heightScale = if (preference.systemUI.statusBar.setBatteryIconHeightScale) {
                         preference.systemUI.statusBar.batteryIconHeightScale
                     } else null
-                    SystemUI.setBatteryIconScale(lpparam, widthScale, heightScale)
+                    StatusBar.setBatteryIconScale(lpparam, widthScale, heightScale)
                 }
 
                 if (preference.systemUI.statusBar.hideBatteryIcon) {
-                    HideBatteryIconHook.apply(lpparam)
+                    HideBatteryIcon.apply(lpparam)
                 }
 
                 if (preference.systemUI.statusBar.addBatteryLevelText) {
-                    SystemUI.addBatteryLevelText(
+                    StatusBar.addBatteryLevelText(
                         lpparam,
                         preference.systemUI.statusBar.hideBatteryLevelTextPercentageSign,
                         preference.systemUI.statusBar.hideBatteryLevelTextChargingIcon,
@@ -286,19 +292,19 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
 
                 if (preference.systemUI.statusBar.setStatusBarClockFormat) {
                     val format = preference.systemUI.statusBar.statusBarClockFormat
-                    SystemUI.setStatusBarClockFormat(lpparam, format)
+                    StatusBar.setStatusBarClockFormat(lpparam, format)
                 }
 
                 if (preference.systemUI.statusBar.updateStatusBarClockEverySecond) {
-                    SystemUI.updateStatusBarClockEverySecond(lpparam)
+                    StatusBar.updateStatusBarClockEverySecond(lpparam)
                 }
 
                 if (preference.systemUI.statusBar.hideSecureFolderStatusBarIcon) {
-                    SystemUI.hideSecureFolderStatusBarIcon(lpparam)
+                    StatusBar.hideSecureFolderStatusBarIcon(lpparam)
                 }
 
                 if (preference.systemUI.statusBar.restoreBluetoothStatusBarIcon) {
-                    SystemUI.restoreBluetoothStatusBarIcon(lpparam)
+                    StatusBar.restoreBluetoothStatusBarIcon(lpparam)
                 }
 
                 if (preference.systemUI.statusBar.physicalEsimAdapterWorkaround) {
@@ -309,39 +315,39 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                 }
 
                 if (preference.systemUI.statusBar.doubleTapStatusBarToSleep) {
-                    SystemUI.doubleTapStatusBarToSleep(lpparam)
+                    StatusBar.doubleTapStatusBarToSleep(lpparam)
                 }
 
                 if (preference.systemUI.statusBar.modifyStatusBarMaxNotificationIcons) {
                     val max = preference.systemUI.statusBar.statusBarMaxNotificationIcons
-                    SystemUI.setStatusBarMaxNotificationIcons(lpparam, max)
+                    Notification.setStatusBarMaxNotificationIcons(lpparam, max)
                 }
 
                 if (preference.systemUI.statusBar.setCustomCarrierName) {
-                    SystemUI.setCustomCarrierName(lpparam, preference.systemUI.statusBar.customCarrierName)
+                    StatusBar.setCustomCarrierName(lpparam, preference.systemUI.statusBar.customCarrierName)
                 }
 
                 if (preference.systemUI.statusBar.hideLockscreenStatusBar) {
-                    SystemUI.hideLockscreenStatusBar(lpparam)
+                    StatusBar.hideLockscreenStatusBar(lpparam)
                 }
 
                 if (preference.settings.supportOutdoorMode) {
-                    SystemUI.supportOutdoorMode(lpparam)
+                    QS.supportOutdoorMode(lpparam)
                 }
 
                 run {
                     val monospaced = preference.systemUI.qs.setQsClockMonospaced
                     val modifyTextSize = preference.systemUI.qs.modifyQSClockTextSize
                     val textSize = preference.systemUI.qs.qsClockTextSize
-                    SystemUI.setQsClockStyle(lpparam, monospaced, modifyTextSize, textSize)
+                    QS.setQsClockStyle(lpparam, monospaced, modifyTextSize, textSize)
                 }
 
                 if (preference.systemUI.qs.hideDeviceControlQsTile) {
-                    SystemUI.hideDeviceControlQsTile(lpparam)
+                    QS.hideDeviceControlQsTile(lpparam)
                 }
 
                 if (preference.systemUI.qs.hideSmartViewQsTile) {
-                    SystemUI.hideSmartViewQsTile(lpparam)
+                    QS.hideSmartViewQsTile(lpparam)
                 }
 
                 if (preference.systemUI.qs.turnOn5gQsTile) {
@@ -351,61 +357,61 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                 run {
                     val qsBarSet = buildSet {
                         if (preference.systemUI.qs.hideQsBarMediaPlayer) {
-                            add(SystemUI.QsBar.MediaPlayer)
+                            add(QS.QsBar.MediaPlayer)
                         }
                         if (preference.systemUI.qs.hideQsBarNearbyDevicesAndDeviceControl) {
-                            add(SystemUI.QsBar.NearbyDevicesAndDeviceControl)
+                            add(QS.QsBar.NearbyDevicesAndDeviceControl)
                         }
                         if (preference.systemUI.qs.hideQsBarSecurityFooter) {
-                            add(SystemUI.QsBar.SecurityFooter)
+                            add(QS.QsBar.SecurityFooter)
                         }
                         if (preference.systemUI.qs.hideQsBarDataUsage) {
-                            add(SystemUI.QsBar.DataUsage)
+                            add(QS.QsBar.DataUsage)
                         }
                         if (preference.systemUI.qs.hideQsBarSmartViewAndModes) {
-                            add(SystemUI.QsBar.SmartViewAndModes)
+                            add(QS.QsBar.SmartViewAndModes)
                         }
                     }
 
-                    SystemUI.hideQsBar(lpparam, qsBarSet)
+                    QS.hideQsBar(lpparam, qsBarSet)
                 }
 
                 if (preference.systemUI.qs.alwaysExpandQsTileChunk) {
-                    SystemUI.alwaysExpandQsTileChunk(lpparam)
+                    QS.alwaysExpandQsTileChunk(lpparam)
                 }
 
                 if (preference.systemUI.qs.alwaysShowTimeDateOnQs) {
-                    SystemUI.alwaysShowTimeDateOnQs(lpparam)
+                    QS.alwaysShowTimeDateOnQs(lpparam)
                 }
 
                 if (preference.systemUI.qs.addBrightnessProgressToQsBar) {
-                    SystemUI.addBrightnessProgressToQsBar(lpparam)
+                    QS.addBrightnessProgressToQsBar(lpparam)
                 }
 
                 if (preference.systemUI.qs.addVolumeProgressToQsBar) {
-                    SystemUI.addVolumeProgressToQsBar(lpparam)
+                    QS.addVolumeProgressToQsBar(lpparam)
                 }
 
                 if (preference.systemUI.qs.showTraditionalChineseDateOnQS) {
-                    SystemUI.showTraditionalChineseDateOnQS(lpparam)
+                    QS.showTraditionalChineseDateOnQS(lpparam)
                 }
 
                 if (preference.systemUI.aod.hideAODStatusBar) {
-                    SystemUI.hideAODStatusBar(lpparam)
+                    AOD.hideAODStatusBar(lpparam)
                 }
 
                 if (preference.systemUI.aod.aodLockSupportLunar) {
-                    SystemUI.aodLockSupportLunar(lpparam)
+                    AOD.aodLockSupportLunar(lpparam)
                 }
 
                 if (preference.systemUI.other.disableScreenshotCaptureSound) {
-                    SystemUI.disableScreenshotCaptureSound(lpparam)
+                    Other.disableScreenshotCaptureSound(lpparam)
                 }
                 if (preference.systemUI.other.disableNotificationGrouping) {
-                    SystemUI.disableNotificationGrouping(lpparam)
+                    Notification.disableNotificationGrouping(lpparam)
                 }
                 if (preference.systemUI.other.hideOngoingActivityMedia) {
-                    SystemUI.hideOngoingActivityMedia(
+                    Notification.hideOngoingActivityMedia(
                         lpparam,
                         preference.systemUI.other.hideOngoingActivityMediaPackages
                             .split(",")
@@ -481,7 +487,7 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
         }
         val preference = PreferenceProvider.preference ?: return
         if (preference.systemUI.statusBar.hideBatteryPercentageSign) {
-            SystemUI.hideBatteryPercentageSign(resparam)
+            StatusBar.hideBatteryPercentageSign(resparam)
         }
     }
 
