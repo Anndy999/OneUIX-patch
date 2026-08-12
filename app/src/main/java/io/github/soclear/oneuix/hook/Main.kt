@@ -473,7 +473,7 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                 }
             }
 
-            "com.samsung.android.service.airviewdictionary" -> {
+            Package.TRANSLATION -> {
                 if (preference.other.useSPenGoogleTranslate) {
                     SPen.switchTranslateSource(lpparam, useGoogle = true)
                 }
