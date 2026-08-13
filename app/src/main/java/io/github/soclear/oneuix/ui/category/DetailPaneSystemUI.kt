@@ -706,37 +706,7 @@ fun DetailPaneSystemUI(
             )
         }
 
-        DividerText(R.string.other)
-        Column {
-            var expanded by rememberSaveable { mutableStateOf(false) }
-            SwitchItem(
-                icon = ImageVector.vectorResource(id = R.drawable.power_settings_new),
-                title = stringResource(id = R.string.customPowerMenu_title),
-                clickable = true,
-                onClick = { expanded = !expanded },
-                checked = uiState.other.customPowerMenu,
-                onCheckedChange = {
-                    expanded = it
-                    onEvent(SystemUIEvent.Other.CustomPowerMenu(it))
-                }
-            )
-            AnimatedVisibility(expanded && uiState.other.customPowerMenu) {
-                PowerMenuActionEditor(
-                    actions = uiState.other.powerMenuActions,
-                    onActionsChange = {
-                        onEvent(SystemUIEvent.Other.PowerMenuActions(it))
-                    }
-                )
-            }
-        }
-        SwitchItem(
-            icon = ImageVector.vectorResource(id = R.drawable.screenshot),
-            title = stringResource(id = R.string.disableScreenshotCaptureSound_title),
-            checked = uiState.other.disableScreenshotCaptureSound,
-            onCheckedChange = {
-                onEvent(SystemUIEvent.Other.DisableScreenshotCaptureSound(it))
-            }
-        )
+        DividerText(R.string.notification)
         Column {
             var expanded by rememberSaveable { mutableStateOf(false) }
             SwitchItem(
@@ -800,6 +770,38 @@ fun DetailPaneSystemUI(
             checked = uiState.other.autoExpandNotifications,
             onCheckedChange = {
                 onEvent(SystemUIEvent.Other.AutoExpandNotifications(it))
+            }
+        )
+
+        DividerText(R.string.other)
+        Column {
+            var expanded by rememberSaveable { mutableStateOf(false) }
+            SwitchItem(
+                icon = ImageVector.vectorResource(id = R.drawable.power_settings_new),
+                title = stringResource(id = R.string.customPowerMenu_title),
+                clickable = true,
+                onClick = { expanded = !expanded },
+                checked = uiState.other.customPowerMenu,
+                onCheckedChange = {
+                    expanded = it
+                    onEvent(SystemUIEvent.Other.CustomPowerMenu(it))
+                }
+            )
+            AnimatedVisibility(expanded && uiState.other.customPowerMenu) {
+                PowerMenuActionEditor(
+                    actions = uiState.other.powerMenuActions,
+                    onActionsChange = {
+                        onEvent(SystemUIEvent.Other.PowerMenuActions(it))
+                    }
+                )
+            }
+        }
+        SwitchItem(
+            icon = ImageVector.vectorResource(id = R.drawable.screenshot),
+            title = stringResource(id = R.string.disableScreenshotCaptureSound_title),
+            checked = uiState.other.disableScreenshotCaptureSound,
+            onCheckedChange = {
+                onEvent(SystemUIEvent.Other.DisableScreenshotCaptureSound(it))
             }
         )
     }

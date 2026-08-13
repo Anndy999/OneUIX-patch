@@ -5,6 +5,7 @@
     <string name="close">닫기</string>
     <string name="confirm">확인</string>
     <string name="other">기타</string>
+    <string name="notification">알림</string>
     <string name="status_bar">상태바</string>
     <string name="qs">빠른 설정창</string>
     <string name="aod">Always On Display</string>

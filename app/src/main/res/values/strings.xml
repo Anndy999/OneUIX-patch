@@ -5,6 +5,7 @@
     <string name="close">Close</string>
     <string name="confirm">Confirm</string>
     <string name="other">Other</string>
+    <string name="notification">Notification</string>
     <string name="status_bar">Status Bar</string>
     <string name="qs">Quick Settings</string>
     <string name="aod">Always On Display</string>

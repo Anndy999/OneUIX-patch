@@ -5,6 +5,7 @@
     <string name="close">Закрыть</string>
     <string name="confirm">Подтвердить</string>
     <string name="other">Другое</string>
+    <string name="notification">Уведомления</string>
     <string name="status_bar">Строка состояния</string>
     <string name="qs">Быстрые настройки</string>
     <string name="aod">Always On Display</string>

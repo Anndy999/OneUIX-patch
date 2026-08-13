@@ -5,6 +5,7 @@
     <string name="close">Fermer</string>
     <string name="confirm">Confirmer</string>
     <string name="other">Autre</string>
+    <string name="notification">Notification</string>
     <string name="status_bar">Barre d\'état</string>
     <string name="qs">Paramètres rapides</string>
     <string name="aod">AOD (Always On Display)</string>

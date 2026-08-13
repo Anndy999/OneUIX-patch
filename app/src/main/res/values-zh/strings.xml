@@ -5,6 +5,7 @@
     <string name="close">关闭</string>
     <string name="confirm">确认</string>
     <string name="other">其他</string>
+    <string name="notification">通知</string>
     <string name="status_bar">状态栏</string>
     <string name="qs">快捷设置</string>
     <string name="aod">息屏提醒</string>
