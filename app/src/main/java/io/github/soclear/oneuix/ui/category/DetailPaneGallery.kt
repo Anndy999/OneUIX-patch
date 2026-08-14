@@ -24,12 +24,22 @@ fun DetailPaneGallery(
             checked = uiState.supportAllGallerySettings,
             onCheckedChange = { onEvent(GalleryEvent.SupportAllGallerySettings(it)) }
         )
+        SwitchItem(
+            icon = ImageVector.vectorResource(id = R.drawable.photo_library),
+            title = stringResource(id = R.string.supportSharedAlbumsInHide_title),
+            summary = stringResource(id = R.string.supportSharedAlbumsInHide_summary),
+            checked = uiState.supportSharedAlbumsInHide,
+            onCheckedChange = { onEvent(GalleryEvent.SupportSharedAlbumsInHide(it)) }
+        )
     }
 }
 
 sealed interface GalleryEvent {
     @JvmInline
     value class SupportAllGallerySettings(val value: Boolean) : GalleryEvent
+
+    @JvmInline
+    value class SupportSharedAlbumsInHide(val value: Boolean) : GalleryEvent
 }
 
 fun SettingViewModel.onGalleryEvent(event: GalleryEvent) {
@@ -38,6 +48,12 @@ fun SettingViewModel.onGalleryEvent(event: GalleryEvent) {
             is GalleryEvent.SupportAllGallerySettings -> preference.copy(
                 other = preference.other.copy(
                     supportAllGallerySettings = event.value
+                )
+            )
+
+            is GalleryEvent.SupportSharedAlbumsInHide -> preference.copy(
+                other = preference.other.copy(
+                    supportSharedAlbumsInHide = event.value
                 )
             )
         }

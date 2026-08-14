@@ -124,6 +124,7 @@
 - 视频播放器添加 3.0 和 4.0 倍速
 - 强制链接跳转外部三星浏览器
 - 显示相册的所有设置
+- 允许隐藏分享的相册
 - 支持三星笔记的所有功能
 - 日历中显示中国节假日
 - 支持拦截短信
@@ -263,6 +264,7 @@
 - Add 3.0x and 4.0x playback speeds to video player
 - Force links to open in external Samsung Internet
 - Show all Gallery settings
+- Allow hiding shared albums
 - Support all Samsung Notes features
 - Show Chinese holidays in Calendar
 - Support message blocking

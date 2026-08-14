@@ -87,6 +87,8 @@
     <string name="makeAllUserAppsAvailable_title">모든 사용자 앱을 앱 복제(듀얼 메신저) 가능하도록 설정</string>
     <string name="supportAllGallerySettings_title">갤러리 모든 설정 표시</string>
     <string name="supportAllGallerySettings_summary">오디오 지우개, 스토리 자동 생성, 이미지 속 개체 인식, 휴지통, 공유 시 HEIF 이미지 변환, 공유 시 HDR10+ 동영상 변환</string>
+    <string name="supportSharedAlbumsInHide_title">공유 앨범 숨기기 허용</string>
+    <string name="supportSharedAlbumsInHide_summary">오른쪽 상단 더보기 -> 앨범 숨기기</string>
     <string name="setBlockableNotificationChannel_title">시스템 알림 카테고리 차단 허용</string>
     <string name="setBlockableNotificationChannel_summary">USB 연결, 충전 중, 배터리 부족 등 기존에 차단 불가능하던 시스템 알림을 끌 수 있게 합니다</string>
     <string name="supportAnyFont_title">모든 글꼴(외부 폰트) 지원</string>

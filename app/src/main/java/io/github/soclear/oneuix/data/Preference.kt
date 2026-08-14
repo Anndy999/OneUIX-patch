@@ -138,6 +138,7 @@ data class Preference(
         val showMorePlaybackSpeeds: Boolean = false,
         val redirectCustomTab: Boolean = false,
         val supportAllGallerySettings: Boolean = true,
+        val supportSharedAlbumsInHide: Boolean = false,
         val supportAllNotesFeatures: Boolean = true,
         val enableChineseHolidayDisplay: Boolean = false,
         val supportBlockMessage: Boolean = true,

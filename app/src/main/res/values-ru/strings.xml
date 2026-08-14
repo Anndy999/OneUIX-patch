@@ -87,6 +87,8 @@
     <string name="makeAllUserAppsAvailable_title">Разрешить клонирование для всех пользовательских приложений</string>
     <string name="supportAllGallerySettings_title">Показать все настройки Галереи</string>
     <string name="supportAllGallerySettings_summary">Удаление звука, Автоистории, Анализ контента, Корзина, Конвертация HEIF/HDR10+ при обмене</string>
+    <string name="supportSharedAlbumsInHide_title">Разрешить скрывать общие альбомы</string>
+    <string name="supportSharedAlbumsInHide_summary">Дополнительные параметры в правом верхнем углу -> Скрыть альбомы</string>
     <string name="setBlockableNotificationChannel_title">Разрешить отключение системных категорий уведомлений</string>
     <string name="setBlockableNotificationChannel_summary">Позволяет отключать уведомления об USB, зарядке, низком заряде и др.</string>
     <string name="supportAnyFont_title">Поддержка любых шрифтов</string>
