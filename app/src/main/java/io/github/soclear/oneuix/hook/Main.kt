@@ -34,6 +34,10 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
 
         when (lpparam.packageName) {
             Package.ANDROID -> {
+                if (preference.android.disableWritingToolkitGlobally) {
+                    Android.disableWritingToolkitGlobally(lpparam)
+                }
+
                 if (preference.android.disablePinVerifyPer72h) {
                     Android.disablePinVerifyPer72h(lpparam)
                 }

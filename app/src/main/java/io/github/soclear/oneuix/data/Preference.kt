@@ -22,6 +22,7 @@ data class Preference(
         val allowAllRotation: Boolean = false,
         val liftFcmNetworkLimit: Boolean = false,
         val disableScreenWakeOnPowerUnplugged: Boolean = false,
+        val disableWritingToolkitGlobally: Boolean = false,
     )
 
     @Serializable

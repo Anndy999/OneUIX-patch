@@ -35,6 +35,7 @@
 - 支持应用跳转拦截
 - 解除 FCM 网络限制
 - 拔出充电器时不亮屏
+- 全局禁用三星写作工具包
 
 #### 系统 UI
 
@@ -177,6 +178,7 @@
 - Support app jump blocking
 - Lift FCM network limit
 - Keep screen off when unplugged
+- Disable Samsung Writing Toolkit globally
 
 #### System UI
 
