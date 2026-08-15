@@ -301,6 +301,11 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                     StatusBar.setStatusBarClockFormat(lpparam, format)
                 }
 
+                if (preference.systemUI.statusBar.setStatusBarClockTextScale) {
+                    val scale = preference.systemUI.statusBar.statusBarClockTextScale
+                    StatusBar.setStatusBarClockTextScale(lpparam, scale)
+                }
+
                 if (preference.systemUI.statusBar.updateStatusBarClockEverySecond) {
                     StatusBar.updateStatusBarClockEverySecond(lpparam)
                 }

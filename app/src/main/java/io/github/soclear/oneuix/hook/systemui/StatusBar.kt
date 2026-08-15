@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -154,6 +155,28 @@ object StatusBar {
                 }
             }
         )
+    }
+
+    fun setStatusBarClockTextScale(loadPackageParam: LoadPackageParam, scale: Float) {
+        if (loadPackageParam.packageName != Package.SYSTEMUI) return
+        // The controller restores the system baseline size before this callback, so scaling
+        // remains stable across density and font-scale changes instead of accumulating.
+        val callback = object : XC_MethodHook() {
+            override fun afterHookedMethod(param: MethodHookParam) {
+                val clockView = getObjectField(param.thisObject, "view") as TextView
+                clockView.setTextSize(TypedValue.COMPLEX_UNIT_PX, clockView.textSize * scale)
+            }
+        }
+        try {
+            findAndHookMethod(
+                "com.android.systemui.statusbar.policy.QSClockIndicatorViewController",
+                loadPackageParam.classLoader,
+                "onDensityOrFontScaleChanged",
+                callback
+            )
+        } catch (t: Throwable) {
+            XposedBridge.log(t)
+        }
     }
 
     fun setStatusBarClockFormat(loadPackageParam: LoadPackageParam, format: String) {

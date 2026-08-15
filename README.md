@@ -50,6 +50,7 @@
 - 支持显示实时网速
 - 状态栏显示上传下载网速
 - 设置状态栏日期时间格式
+- 设置状态栏时间大小
 - 状态栏时间每秒更新
 - 隐藏安全文件夹状态栏图标
 - 恢复蓝牙状态栏图标
@@ -191,6 +192,7 @@
 - Support displaying real-time network speed
 - Show separate upload/download speeds in status bar
 - Set status bar date and time format
+- Set status bar clock size
 - Update status bar clock every second
 - Hide Secure Folder status bar icon
 - Restore Bluetooth status bar icon
