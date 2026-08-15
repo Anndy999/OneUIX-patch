@@ -31,6 +31,12 @@ fun DetailPaneGallery(
             checked = uiState.supportSharedAlbumsInHide,
             onCheckedChange = { onEvent(GalleryEvent.SupportSharedAlbumsInHide(it)) }
         )
+        SwitchItem(
+            icon = ImageVector.vectorResource(id = R.drawable.photo_library),
+            title = stringResource(id = R.string.hideVideoEditorStudio_title),
+            checked = uiState.hideVideoEditorStudio,
+            onCheckedChange = { onEvent(GalleryEvent.HideVideoEditorStudio(it)) }
+        )
     }
 }
 
@@ -40,6 +46,9 @@ sealed interface GalleryEvent {
 
     @JvmInline
     value class SupportSharedAlbumsInHide(val value: Boolean) : GalleryEvent
+
+    @JvmInline
+    value class HideVideoEditorStudio(val value: Boolean) : GalleryEvent
 }
 
 fun SettingViewModel.onGalleryEvent(event: GalleryEvent) {
@@ -54,6 +63,12 @@ fun SettingViewModel.onGalleryEvent(event: GalleryEvent) {
             is GalleryEvent.SupportSharedAlbumsInHide -> preference.copy(
                 other = preference.other.copy(
                     supportSharedAlbumsInHide = event.value
+                )
+            )
+
+            is GalleryEvent.HideVideoEditorStudio -> preference.copy(
+                other = preference.other.copy(
+                    hideVideoEditorStudio = event.value
                 )
             )
         }

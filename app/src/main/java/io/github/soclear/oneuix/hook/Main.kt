@@ -124,6 +124,9 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                 if (preference.other.supportSharedAlbumsInHide) {
                     Gallery.supportSharedAlbumsInHide(lpparam)
                 }
+                if (preference.other.hideVideoEditorStudio) {
+                    Gallery.hideVideoEditorStudio(lpparam)
+                }
             }
 
             Package.HEALTH_MONITOR -> {

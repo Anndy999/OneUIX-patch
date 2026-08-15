@@ -264,4 +264,19 @@ object Gallery {
             XposedBridge.log(t)
         }
     }
+
+    fun hideVideoEditorStudio(loadPackageParam: LoadPackageParam) {
+        if (loadPackageParam.processName != Package.GALLERY) return
+        try {
+            findAndHookMethod(
+                $$"com.samsung.android.gallery.app.ui.container.menu.BottomMenuItem$Studio",
+                loadPackageParam.classLoader,
+                "support",
+                Context::class.java,
+                returnConstant(false)
+            )
+        } catch (t: Throwable) {
+            XposedBridge.log(t)
+        }
+    }
 }

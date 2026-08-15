@@ -89,6 +89,7 @@
     <string name="supportAllGallerySettings_summary">Gomme audio, Création auto d\'histoires, Reconnaissance d\'images, Corbeille, Convertir HEIF/HDR10+ lors du partage</string>
     <string name="supportSharedAlbumsInHide_title">Autoriser le masquage des albums partagés</string>
     <string name="supportSharedAlbumsInHide_summary">Plus d\'options en haut à droite -> Masquer des albums</string>
+    <string name="hideVideoEditorStudio_title">Masquer le studio de montage vidéo</string>
     <string name="setBlockableNotificationChannel_title">Autoriser la désactivation des catégories de notification système</string>
     <string name="setBlockableNotificationChannel_summary">Permet de désactiver les notifications USB, En charge, Batterie faible, etc.</string>
     <string name="supportAnyFont_title">Prendre en charge n\'importe quelle police</string>

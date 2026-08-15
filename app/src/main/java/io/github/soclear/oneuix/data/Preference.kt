@@ -139,6 +139,7 @@ data class Preference(
         val redirectCustomTab: Boolean = false,
         val supportAllGallerySettings: Boolean = true,
         val supportSharedAlbumsInHide: Boolean = false,
+        val hideVideoEditorStudio: Boolean = false,
         val supportAllNotesFeatures: Boolean = true,
         val enableChineseHolidayDisplay: Boolean = false,
         val supportBlockMessage: Boolean = true,

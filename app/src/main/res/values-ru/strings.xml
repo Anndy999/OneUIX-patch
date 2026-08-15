@@ -89,6 +89,7 @@
     <string name="supportAllGallerySettings_summary">Удаление звука, Автоистории, Анализ контента, Корзина, Конвертация HEIF/HDR10+ при обмене</string>
     <string name="supportSharedAlbumsInHide_title">Разрешить скрывать общие альбомы</string>
     <string name="supportSharedAlbumsInHide_summary">Дополнительные параметры в правом верхнем углу -> Скрыть альбомы</string>
+    <string name="hideVideoEditorStudio_title">Скрыть студию видеомонтажа</string>
     <string name="setBlockableNotificationChannel_title">Разрешить отключение системных категорий уведомлений</string>
     <string name="setBlockableNotificationChannel_summary">Позволяет отключать уведомления об USB, зарядке, низком заряде и др.</string>
     <string name="supportAnyFont_title">Поддержка любых шрифтов</string>

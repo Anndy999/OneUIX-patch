@@ -125,6 +125,7 @@
 - 强制链接跳转外部三星浏览器
 - 显示相册的所有设置
 - 允许隐藏分享的相册
+- 隐藏视频编辑工作室
 - 支持三星笔记的所有功能
 - 日历中显示中国节假日
 - 支持拦截短信
@@ -265,6 +266,7 @@
 - Force links to open in external Samsung Internet
 - Show all Gallery settings
 - Allow hiding shared albums
+- Hide Video Editor Studio
 - Support all Samsung Notes features
 - Show Chinese holidays in Calendar
 - Support message blocking
