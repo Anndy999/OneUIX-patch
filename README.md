@@ -67,6 +67,7 @@
 - 隐藏快捷设置的设备控制
 - 隐藏快捷设置的 Smart View
 - 开启快捷设置 5G 磁贴
+- 开启沉浸模式快捷设置磁贴
 - 隐藏快捷设置面板的媒体播放器 Bar
 - 隐藏快捷设置面板的附近设备和设备控制 Bar
 - 隐藏快捷设置面板的安全底部提示 Bar
@@ -210,6 +211,7 @@
 - Hide Device Control in Quick Settings
 - Hide Smart View in Quick Settings
 - Enable 5G Quick Settings tile
+- Enable Immersive mode Quick Settings tile
 - Hide Media Player bar in QS panel
 - Hide Nearby Devices and Device Control bar in QS panel
 - Hide Security footer bar in QS panel
