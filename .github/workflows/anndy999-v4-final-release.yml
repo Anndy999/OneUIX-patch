@@ -1,0 +1,249 @@
+name: Build and Release anndy999 V4 Final
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/release.yml'
+      - 'app/src/main/java/io/github/soclear/oneuix/hook/systemui/StatusBar.kt'
+      - 'app/src/main/AndroidManifest.xml'
+      - 'app/build.gradle.kts'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: '25'
+          cache: gradle
+
+      - name: Apply V4 final centered double-line clock patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path(".")
+          statusbar = root / "app/src/main/java/io/github/soclear/oneuix/hook/systemui/StatusBar.kt"
+          manifest = root / "app/src/main/AndroidManifest.xml"
+          gradle = root / "app/build.gradle.kts"
+
+          text = statusbar.read_text(encoding="utf-8")
+
+          import_anchor = "import android.os.Build\n"
+          extra_imports = (
+              "import android.os.Build\n"
+              "import android.text.SpannableString\n"
+              "import android.text.Spanned\n"
+              "import android.text.style.RelativeSizeSpan\n"
+          )
+          if "import android.text.style.RelativeSizeSpan" not in text:
+              if import_anchor not in text:
+                  raise SystemExit("StatusBar.kt import anchor not found")
+              text = text.replace(import_anchor, extra_imports, 1)
+
+          old_lines = [
+              "                val clockTextView = param.thisObject as TextView",
+              "                val dateTime = block()",
+              "                clockTextView.text = dateTime",
+              "                clockTextView.contentDescription = dateTime",
+              "                return null",
+          ]
+          old = "\n".join(old_lines) + "\n"
+
+          nl = chr(92) + "n"
+
+          new_lines = [
+              "                val clockTextView = param.thisObject as TextView",
+              "                val dateTime = block()",
+              "",
+              f"                val displayText: CharSequence = if (dateTime.contains('{nl}')) {{",
+              "                    // Keep Samsung's full status-bar height so the complete",
+              "                    // two-line clock block is centered on the same vertical axis",
+              "                    // as the battery and status icons on the right.",
+              "                    clockTextView.layoutParams?.let { params ->",
+              "                        if (params.height != ViewGroup.LayoutParams.MATCH_PARENT) {",
+              "                            params.height = ViewGroup.LayoutParams.MATCH_PARENT",
+              "                            clockTextView.layoutParams = params",
+              "                        }",
+              "                    }",
+              "                    (clockTextView.parent as? LinearLayout)?.let { parent ->",
+              "                        parent.gravity =",
+              "                            (parent.gravity and Gravity.VERTICAL_GRAVITY_MASK.inv()) or Gravity.CENTER_VERTICAL",
+              "                    }",
+              "",
+              "                    clockTextView.isSingleLine = false",
+              "                    clockTextView.setLines(2)",
+              "                    clockTextView.includeFontPadding = false",
+              "                    clockTextView.ellipsize = null",
+              "                    clockTextView.setHorizontallyScrolling(false)",
+              "                    clockTextView.gravity =",
+              "                        (clockTextView.gravity and Gravity.VERTICAL_GRAVITY_MASK.inv()) or Gravity.CENTER_VERTICAL",
+              "                    clockTextView.setPaddingRelative(",
+              "                        clockTextView.paddingStart,",
+              "                        0,",
+              "                        clockTextView.paddingEnd,",
+              "                        0",
+              "                    )",
+              "",
+              "                    // Restore the V2 font proportions exactly.",
+              "                    // Do NOT dynamically shrink them based on measured height.",
+              "                    clockTextView.setLineSpacing(0f, 0.70f)",
+              f"                    val lineBreak = dateTime.indexOf('{nl}')",
+              "                    SpannableString(dateTime).apply {",
+              "                        if (lineBreak > 0) {",
+              "                            setSpan(",
+              "                                RelativeSizeSpan(0.60f),",
+              "                                0,",
+              "                                lineBreak,",
+              "                                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE",
+              "                            )",
+              "                        }",
+              "                        if (lineBreak + 1 < length) {",
+              "                            setSpan(",
+              "                                RelativeSizeSpan(0.50f),",
+              "                                lineBreak + 1,",
+              "                                length,",
+              "                                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE",
+              "                            )",
+              "                        }",
+              "                    }",
+              "                } else {",
+              "                    clockTextView.isSingleLine = true",
+              "                    clockTextView.maxLines = 1",
+              "                    clockTextView.minLines = 1",
+              "                    clockTextView.includeFontPadding = false",
+              "                    clockTextView.setHorizontallyScrolling(false)",
+              "                    clockTextView.setLineSpacing(0f, 1f)",
+              "                    dateTime",
+              "                }",
+              "",
+              "                // No optical Y offset: geometric center must match the right status icons.",
+              "                clockTextView.translationY = 0f",
+              "                clockTextView.text = displayText",
+              f"                clockTextView.contentDescription = dateTime.replace('{nl}', ' ')",
+              "                return null",
+          ]
+          new = "\n".join(new_lines) + "\n"
+
+          if "Restore the V2 font proportions exactly." not in text:
+              if old not in text:
+                  raise SystemExit("StatusBar.kt clock replacement block not found")
+              text = text.replace(old, new, 1)
+
+          required = [
+              "ViewGroup.LayoutParams.MATCH_PARENT",
+              "Gravity.CENTER_VERTICAL",
+              "RelativeSizeSpan(0.60f)",
+              "RelativeSizeSpan(0.50f)",
+              "clockTextView.setLineSpacing(0f, 0.70f)",
+              "clockTextView.translationY = 0f",
+              "dateTime.contains('" + nl + "')",
+              "dateTime.indexOf('" + nl + "')",
+          ]
+          for item in required:
+              if item not in text:
+                  raise SystemExit("V4 sanity check failed: " + item)
+
+          if "safeHeight" in text or "AbsoluteSizeSpan" in text:
+              raise SystemExit("V4 sanity check failed: V3 dynamic shrinking is still present")
+
+          statusbar.write_text(text, encoding="utf-8")
+
+          text = manifest.read_text(encoding="utf-8")
+          if 'android:label="@string/app_name"' in text:
+              text = text.replace(
+                  'android:label="@string/app_name"',
+                  'android:label="One UI X · anndy999 V4 Final"',
+                  1
+              )
+          if 'android:value="@string/xposed_description"' in text:
+              text = text.replace(
+                  'android:value="@string/xposed_description"',
+                  'android:value="Samsung One UI Extension · modified by anndy999 · Double-line V4 Final"',
+                  1
+              )
+          manifest.write_text(text, encoding="utf-8")
+
+          text = gradle.read_text(encoding="utf-8")
+          if 'applicationId = "io.github.soclear.oneuix"' in text:
+              text = text.replace(
+                  'applicationId = "io.github.soclear.oneuix"',
+                  'applicationId = "io.github.anndy999.oneuix"',
+                  1
+              )
+          if 'versionCode = 9' in text:
+              text = text.replace('versionCode = 9', 'versionCode = 11', 1)
+          if 'versionName = "1.7.0"' in text:
+              text = text.replace(
+                  'versionName = "1.7.0"',
+                  'versionName = "1.7.0-anndy999-v4-final"',
+                  1
+              )
+          gradle.write_text(text, encoding="utf-8")
+
+          print("V4 Final patch applied: V2 font size + true vertical centering")
+          PY
+
+      - name: Verify generated source
+        shell: bash
+        run: |
+          grep -F "RelativeSizeSpan(0.60f)" app/src/main/java/io/github/soclear/oneuix/hook/systemui/StatusBar.kt
+          grep -F "RelativeSizeSpan(0.50f)" app/src/main/java/io/github/soclear/oneuix/hook/systemui/StatusBar.kt
+          grep -F "ViewGroup.LayoutParams.MATCH_PARENT" app/src/main/java/io/github/soclear/oneuix/hook/systemui/StatusBar.kt
+          grep -F "clockTextView.translationY = 0f" app/src/main/java/io/github/soclear/oneuix/hook/systemui/StatusBar.kt
+          if grep -Fq "safeHeight" app/src/main/java/io/github/soclear/oneuix/hook/systemui/StatusBar.kt; then
+            echo "Unexpected V3 dynamic shrinking code found"
+            exit 1
+          fi
+
+      - name: Grant Gradle execute permission
+        run: chmod +x gradlew
+
+      - name: Build installable APK
+        run: ./gradlew assembleDebug
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/OneUIX-anndy999-v4-final.apk
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v4.0.${GITHUB_RUN_NUMBER}"
+          APK="dist/OneUIX-anndy999-v4-final.apk"
+          TITLE="OneUIX anndy999 V4 Final"
+          NOTES="V4 Final: V2 font proportions restored (time 60%, date 50%); two-line clock block is vertically centered to the same status-bar centerline as the right battery/status icons; V3 dynamic shrinking and Y offset removed."
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" "$APK" \
+              --target "$GITHUB_SHA" \
+              --title "$TITLE" \
+              --notes "$NOTES"
+          fi
+
+      - name: Upload Actions backup
+        uses: actions/upload-artifact@v7
+        with:
+          name: OneUIX-anndy999-v4-final
+          path: dist/OneUIX-anndy999-v4-final.apk
+          retention-days: 15
+          archive: false
