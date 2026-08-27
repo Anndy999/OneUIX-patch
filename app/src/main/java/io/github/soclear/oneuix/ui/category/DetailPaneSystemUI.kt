@@ -537,7 +537,7 @@ fun DetailPaneSystemUI(
                                     DOUBLE_LINE_CLOCK_SIZE_VALUES[it]
                                 )
                             )
-                        )
+                        }
                     )
                 }
                 var lineGapDp by remember(uiState.statusBar.doubleLineClockGapDp) {
