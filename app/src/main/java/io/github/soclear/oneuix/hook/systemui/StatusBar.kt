@@ -35,6 +35,7 @@ import io.github.soclear.oneuix.data.ONE_UI_VERSION
 import io.github.soclear.oneuix.data.Package
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.WeakHashMap
 import kotlin.math.roundToInt
 
 object StatusBar {
