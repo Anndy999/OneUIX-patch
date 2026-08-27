@@ -93,9 +93,12 @@ fun DetailPaneSystemUI(
                             val process = ProcessBuilder(
                                 "su",
                                 "-c",
-                                "killall com.android.systemui"
+                                "pid=\$(pidof com.android.systemui); " +
+                                    "if [ -n \"\$pid\" ]; then kill \$pid; " +
+                                    "else killall com.android.systemui || " +
+                                    "am force-stop com.android.systemui; fi"
                             ).start()
-                            process.waitFor(3, TimeUnit.SECONDS) && process.exitValue() == 0
+                            process.waitFor(5, TimeUnit.SECONDS) && process.exitValue() == 0
                         }.getOrDefault(false)
                     }
                     Toast.makeText(

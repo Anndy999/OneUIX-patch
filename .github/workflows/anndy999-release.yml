@@ -1,4 +1,4 @@
-name: Build and Release OneUIX anndy999 V12 Samsung Fit
+name: Build and Release OneUIX anndy999 V13 Status Bar Runtime Fix
 
 on:
   workflow_dispatch:
@@ -42,17 +42,17 @@ jobs:
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk \
-            dist/OneUIX-anndy999-v12-samsung-fit.apk
+            dist/OneUIX-anndy999-v13-statusbar-runtime-fix.apk
 
       - name: Create GitHub Release and upload APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v12.0.${{ github.run_number }}
-          name: OneUIX anndy999 V12 Samsung Fit
+          tag_name: v13.0.${{ github.run_number }}
+          name: OneUIX anndy999 V13 Status Bar Runtime Fix
           target_commitish: ${{ github.sha }}
           body: >-
-            Samsung-adaptive two-line status-bar clock built directly from the repository source.
-          files: dist/OneUIX-anndy999-v12-samsung-fit.apk
+            Samsung status-bar runtime update fix built directly from the repository source.
+          files: dist/OneUIX-anndy999-v13-statusbar-runtime-fix.apk
           overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -302,13 +302,11 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
 
                 val statusBarTopPaddingDp = preference.systemUI.statusBar.statusBarTopPaddingDp
                 val statusBarBottomPaddingDp = preference.systemUI.statusBar.statusBarBottomPaddingDp
-                if (statusBarTopPaddingDp != 0f || statusBarBottomPaddingDp != 0f) {
-                    StatusBar.setStatusBarVerticalPadding(
-                        lpparam,
-                        statusBarTopPaddingDp,
-                        statusBarBottomPaddingDp,
-                    )
-                }
+                StatusBar.setStatusBarVerticalPadding(
+                    lpparam,
+                    statusBarTopPaddingDp,
+                    statusBarBottomPaddingDp,
+                )
 
                 val statusBarClockFormat = preference.systemUI.statusBar.statusBarClockFormat
                 val usesDoubleLineClock = preference.systemUI.statusBar.setStatusBarClockFormat &&

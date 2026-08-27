@@ -3,6 +3,7 @@ package io.github.soclear.oneuix.hook.systemui
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
+import android.os.FileObserver
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -21,6 +22,7 @@ import android.widget.TextView
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
+import de.robv.android.xposed.XposedBridge.hookAllConstructors
 import de.robv.android.xposed.XposedBridge.hookAllMethods
 import de.robv.android.xposed.XposedHelpers.callMethod
 import de.robv.android.xposed.XposedHelpers.findAndHookMethod
@@ -33,6 +35,7 @@ import de.robv.android.xposed.callbacks.XC_InitPackageResources.InitPackageResou
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 import io.github.soclear.oneuix.data.ONE_UI_VERSION
 import io.github.soclear.oneuix.data.Package
+import io.github.soclear.oneuix.hook.util.PreferenceProvider
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.WeakHashMap
@@ -57,6 +60,17 @@ object StatusBar {
     private val singleLineClockLayouts = WeakHashMap<TextView, SingleLineClockLayout>()
 
     private val statusBarOriginalTranslations = WeakHashMap<View, Float>()
+    private val statusBarViews = WeakHashMap<View, Unit>()
+
+    private data class StatusBarVerticalOffset(
+        val topDp: Float,
+        val bottomDp: Float,
+    )
+
+    @Volatile
+    private var statusBarVerticalOffset = StatusBarVerticalOffset(0f, 0f)
+
+    private var statusBarVerticalPreferenceObserver: FileObserver? = null
 
     private fun View.findStatusBarArea(vararg resourceNames: String): View? {
         resourceNames.forEach { resourceName ->
@@ -66,6 +80,90 @@ object StatusBar {
             }
         }
         return null
+    }
+
+    private fun updateStatusBarVerticalOffset(topDp: Float, bottomDp: Float) {
+        statusBarVerticalOffset = StatusBarVerticalOffset(topDp, bottomDp)
+        val activeStatusBarViews = synchronized(statusBarViews) {
+            statusBarViews.keys.toList()
+        }
+        activeStatusBarViews.forEach { statusBarView ->
+            statusBarView.post {
+                applyStatusBarVerticalOffset(statusBarView)
+            }
+        }
+    }
+
+    private fun observeStatusBarVerticalOffsetPreference() {
+        if (statusBarVerticalPreferenceObserver != null) return
+        val preferenceFile = PreferenceProvider.getPreferenceFile()
+        val parentDirectory = preferenceFile.parentFile ?: return
+        statusBarVerticalPreferenceObserver = object : FileObserver(
+            parentDirectory,
+            FileObserver.CLOSE_WRITE or FileObserver.MOVED_TO,
+        ) {
+            override fun onEvent(event: Int, path: String?) {
+                if (path != preferenceFile.name) return
+                Handler(Looper.getMainLooper()).post {
+                    PreferenceProvider.readPreference()?.systemUI?.statusBar?.let { statusBar ->
+                        updateStatusBarVerticalOffset(
+                            statusBar.statusBarTopPaddingDp,
+                            statusBar.statusBarBottomPaddingDp,
+                        )
+                    }
+                }
+            }
+        }.also { it.startWatching() }
+    }
+
+    private fun registerStatusBarView(statusBarView: View) {
+        val shouldAddLayoutListener = synchronized(statusBarViews) {
+            statusBarViews.put(statusBarView, Unit) == null
+        }
+        if (shouldAddLayoutListener) {
+            statusBarView.addOnLayoutChangeListener(
+                View.OnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+                    applyStatusBarVerticalOffset(view)
+                }
+            )
+        }
+        statusBarView.post {
+            applyStatusBarVerticalOffset(statusBarView)
+        }
+    }
+
+    private fun applyStatusBarVerticalOffset(statusBarView: View) {
+        val offset = statusBarVerticalOffset
+        val density = statusBarView.resources.displayMetrics.density
+        val topPx = (offset.topDp.coerceIn(0f, 8f) * density).roundToInt()
+        val bottomPx = (offset.bottomDp.coerceIn(0f, 8f) * density).roundToInt()
+        // Samsung has kept PhoneStatusBarView across One UI releases, but the
+        // internal left/right area IDs vary by device and firmware. Resolve one
+        // container per side so nested aliases cannot receive the offset twice.
+        val leftArea = statusBarView.findStatusBarArea(
+            "status_bar_left_side",
+            "status_bar_start_side",
+            "status_bar_start_side_content",
+            "status_bar_left_container",
+        )
+        val rightArea = statusBarView.findStatusBarArea(
+            "system_icon_area",
+            "status_bar_right_side",
+            "status_bar_end_side",
+            "status_bar_end_side_content",
+            "status_icon_area",
+        )
+        val leftAndRightContainers = listOfNotNull(leftArea, rightArea).distinct()
+        val targets = leftAndRightContainers.ifEmpty { listOf(statusBarView) }
+        targets.forEach { target ->
+            val originalTranslationY = statusBarOriginalTranslations.getOrPut(target) {
+                target.translationY
+            }
+            // Padding inside fixed-height indicator containers is often ignored by
+            // their child layout. Translation works across Samsung screen sizes and
+            // One UI layouts: top moves both areas down, bottom moves both areas up.
+            target.translationY = originalTranslationY + topPx - bottomPx
+        }
     }
 
     private fun doubleLineClockStyle(
@@ -143,44 +241,20 @@ object StatusBar {
         bottomDp: Float,
     ) {
         if (loadPackageParam.packageName != Package.SYSTEMUI) return
+        updateStatusBarVerticalOffset(topDp, bottomDp)
+        observeStatusBarVerticalOffsetPreference()
         val phoneStatusBarViewClass = findClassIfExists(
             "com.android.systemui.statusbar.phone.PhoneStatusBarView",
             loadPackageParam.classLoader
         ) ?: return
         try {
-            hookAllMethods(phoneStatusBarViewClass, "onLayout", object : XC_MethodHook() {
+            // Some One UI builds inherit onLayout() instead of declaring it on
+            // PhoneStatusBarView. Hooking that method can therefore be a no-op.
+            // Constructors are stable, and the listener runs after every layout.
+            hookAllConstructors(phoneStatusBarViewClass, object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val statusBarView = param.thisObject as? View ?: return
-                    val density = statusBarView.resources.displayMetrics.density
-                    val topPx = (topDp.coerceIn(0f, 8f) * density).roundToInt()
-                    val bottomPx = (bottomDp.coerceIn(0f, 8f) * density).roundToInt()
-                    // Samsung has kept PhoneStatusBarView across One UI releases, but the
-                    // internal left/right area IDs vary by device and firmware. Resolve one
-                    // container per side so nested aliases cannot receive the offset twice.
-                    val leftArea = statusBarView.findStatusBarArea(
-                        "status_bar_left_side",
-                        "status_bar_start_side",
-                        "status_bar_start_side_content",
-                        "status_bar_left_container",
-                    )
-                    val rightArea = statusBarView.findStatusBarArea(
-                        "system_icon_area",
-                        "status_bar_right_side",
-                        "status_bar_end_side",
-                        "status_bar_end_side_content",
-                        "status_icon_area",
-                    )
-                    val leftAndRightContainers = listOfNotNull(leftArea, rightArea).distinct()
-                    val targets = leftAndRightContainers.ifEmpty { listOf(statusBarView) }
-                    targets.forEach { target ->
-                        val originalTranslationY = statusBarOriginalTranslations.getOrPut(target) {
-                            target.translationY
-                        }
-                        // Padding inside fixed-height indicator containers is often ignored by
-                        // their child layout. Translation works across Samsung screen sizes and
-                        // One UI layouts: top moves both areas down, bottom moves both areas up.
-                        target.translationY = originalTranslationY + topPx - bottomPx
-                    }
+                    registerStatusBarView(statusBarView)
                 }
             })
         } catch (t: Throwable) {
