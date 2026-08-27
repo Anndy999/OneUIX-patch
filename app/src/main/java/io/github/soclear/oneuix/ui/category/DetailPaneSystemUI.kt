@@ -1,6 +1,7 @@
 package io.github.soclear.oneuix.ui.category
 
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -27,11 +28,13 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
@@ -42,8 +45,12 @@ import io.github.soclear.oneuix.data.Preference
 import io.github.soclear.oneuix.ui.SettingViewModel
 import io.github.soclear.oneuix.ui.component.SelectItem
 import io.github.soclear.oneuix.ui.component.SwitchItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
 private const val ESIM_ADAPTER_SIM_BOTH = 2
@@ -55,12 +62,22 @@ private val DOUBLE_LINE_CLOCK_SIZE_VALUES = listOf(
     "extra_large",
 )
 
+private fun legacyDoubleLineClockSize(scale: Float): String = when {
+    scale < 0.925f -> "small"
+    scale < 0.975f -> "compact"
+    scale < 1.025f -> "standard"
+    scale < 1.075f -> "large"
+    else -> "extra_large"
+}
+
 @Composable
 fun DetailPaneSystemUI(
     uiState: Preference.SystemUI,
     onEvent: (SystemUIEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -70,7 +87,23 @@ fun DetailPaneSystemUI(
         Button(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             onClick = {
-                runCatching { Runtime.getRuntime().exec("su -c killall com.android.systemui") }
+                coroutineScope.launch {
+                    val restarted = withContext(Dispatchers.IO) {
+                        runCatching {
+                            val process = ProcessBuilder(
+                                "su",
+                                "-c",
+                                "killall com.android.systemui"
+                            ).start()
+                            process.waitFor(3, TimeUnit.SECONDS) && process.exitValue() == 0
+                        }.getOrDefault(false)
+                    }
+                    Toast.makeText(
+                        context,
+                        if (restarted) R.string.restartSystemUI_success else R.string.restartSystemUI_failed,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         ) {
             Text(text = stringResource(R.string.restartSystemUI))
@@ -150,6 +183,20 @@ fun DetailPaneSystemUI(
                 )
             }
         }
+        StatusBarVerticalPaddingControl(
+            title = stringResource(id = R.string.statusBarTopPaddingDp_title),
+            currentValue = uiState.statusBar.statusBarTopPaddingDp,
+            onValueChangeFinished = {
+                onEvent(SystemUIEvent.StatusBar.StatusBarTopPaddingDp(it))
+            }
+        )
+        StatusBarVerticalPaddingControl(
+            title = stringResource(id = R.string.statusBarBottomPaddingDp_title),
+            currentValue = uiState.statusBar.statusBarBottomPaddingDp,
+            onValueChangeFinished = {
+                onEvent(SystemUIEvent.StatusBar.StatusBarBottomPaddingDp(it))
+            }
+        )
         Column {
             var widthScale by remember {
                 mutableFloatStateOf(uiState.statusBar.batteryIconWidthScale)
@@ -357,7 +404,7 @@ fun DetailPaneSystemUI(
                 }
             }
         }
-        AnimatedVisibility(
+        if (
             uiState.statusBar.setStatusBarClockFormat &&
                 uiState.statusBar.statusBarClockFormat.contains('\n')
         ) {
@@ -369,8 +416,11 @@ fun DetailPaneSystemUI(
                     stringResource(id = R.string.statusBarDoubleLineClockSize_large),
                     stringResource(id = R.string.statusBarDoubleLineClockSize_extraLarge),
                 )
+                val selectedSize = uiState.statusBar.statusBarDoubleLineClockSize.ifBlank {
+                    legacyDoubleLineClockSize(uiState.statusBar.statusBarClockTextScale)
+                }
                 val selectedIndex = DOUBLE_LINE_CLOCK_SIZE_VALUES.indexOf(
-                    uiState.statusBar.statusBarDoubleLineClockSize
+                    selectedSize
                 ).coerceAtLeast(0)
                 SelectItem(
                     icon = ImageVector.vectorResource(id = R.drawable.format_size),
@@ -385,48 +435,85 @@ fun DetailPaneSystemUI(
                         )
                     }
                 )
+                var lineGapDp by remember(uiState.statusBar.doubleLineClockGapDp) {
+                    mutableFloatStateOf(uiState.statusBar.doubleLineClockGapDp)
+                }
+                ListItem(
+                    headlineContent = {
+                        Text(text = stringResource(id = R.string.statusBarDoubleLineClockGap_title))
+                    },
+                    supportingContent = {
+                        Text(
+                            text = stringResource(
+                                id = R.string.statusBarDoubleLineClockGap_summary,
+                                lineGapDp
+                            )
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.format_letter_spacing),
+                            contentDescription = null
+                        )
+                    }
+                )
+                Slider(
+                    value = lineGapDp,
+                    onValueChange = { lineGapDp = it },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    valueRange = 0f..2f,
+                    steps = 19,
+                    onValueChangeFinished = {
+                        onEvent(
+                            SystemUIEvent.StatusBar.DoubleLineClockGapDp(
+                                (lineGapDp * 10f).roundToInt() / 10f
+                            )
+                        )
+                    }
+                )
                 Text(
                     text = stringResource(id = R.string.statusBarDoubleLineClockSize_summary),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
-        }
-        Column {
-            var scale by remember {
-                mutableFloatStateOf(uiState.statusBar.statusBarClockTextScale)
-            }
-            var expanded by rememberSaveable { mutableStateOf(false) }
-
-            SwitchItem(
-                title = stringResource(id = R.string.setStatusBarClockTextScale_title),
-                modifier = Modifier.animateContentSize(),
-                summary = if (uiState.statusBar.setStatusBarClockTextScale) {
-                    "%.2fx".format(scale)
-                } else null,
-                icon = ImageVector.vectorResource(id = R.drawable.format_size),
-                clickable = true,
-                onClick = { expanded = !expanded },
-                checked = uiState.statusBar.setStatusBarClockTextScale,
-                onCheckedChange = {
-                    if (it && scale == 1f) {
-                        expanded = true
-                    } else if (!it) {
-                        expanded = false
-                    }
-                    onEvent(SystemUIEvent.StatusBar.SetStatusBarClockTextScale(it))
+        } else {
+            Column {
+                var scale by remember {
+                    mutableFloatStateOf(uiState.statusBar.statusBarClockTextScale)
                 }
-            )
-            AnimatedVisibility(expanded && uiState.statusBar.setStatusBarClockTextScale) {
-                Slider(
-                    value = scale,
-                    onValueChange = { scale = it },
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    valueRange = 0.5f..2.5f,
-                    onValueChangeFinished = {
-                        onEvent(SystemUIEvent.StatusBar.StatusBarClockTextScale(scale))
+                var expanded by rememberSaveable { mutableStateOf(false) }
+
+                SwitchItem(
+                    title = stringResource(id = R.string.setStatusBarClockTextScale_title),
+                    modifier = Modifier.animateContentSize(),
+                    summary = if (uiState.statusBar.setStatusBarClockTextScale) {
+                        "%.2fx".format(scale)
+                    } else null,
+                    icon = ImageVector.vectorResource(id = R.drawable.format_size),
+                    clickable = true,
+                    onClick = { expanded = !expanded },
+                    checked = uiState.statusBar.setStatusBarClockTextScale,
+                    onCheckedChange = {
+                        if (it && scale == 1f) {
+                            expanded = true
+                        } else if (!it) {
+                            expanded = false
+                        }
+                        onEvent(SystemUIEvent.StatusBar.SetStatusBarClockTextScale(it))
                     }
                 )
+                AnimatedVisibility(expanded && uiState.statusBar.setStatusBarClockTextScale) {
+                    Slider(
+                        value = scale,
+                        onValueChange = { scale = it },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        valueRange = 0.5f..2.5f,
+                        onValueChangeFinished = {
+                            onEvent(SystemUIEvent.StatusBar.StatusBarClockTextScale(scale))
+                        }
+                    )
+                }
             }
         }
         SwitchItem(
@@ -965,6 +1052,42 @@ private fun PowerMenuActionEditor(
     }
 }
 
+@Composable
+private fun StatusBarVerticalPaddingControl(
+    title: String,
+    currentValue: Float,
+    onValueChangeFinished: (Float) -> Unit,
+) {
+    var value by remember(currentValue) { mutableFloatStateOf(currentValue) }
+    ListItem(
+        headlineContent = { Text(text = title) },
+        supportingContent = {
+            Text(
+                text = stringResource(
+                    id = R.string.statusBarVerticalPadding_summary,
+                    value
+                )
+            )
+        },
+        leadingContent = {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.padding),
+                contentDescription = null
+            )
+        }
+    )
+    Slider(
+        value = value,
+        onValueChange = { value = it },
+        modifier = Modifier.padding(horizontal = 16.dp),
+        valueRange = 0f..8f,
+        steps = 79,
+        onValueChangeFinished = {
+            onValueChangeFinished((value * 10f).roundToInt() / 10f)
+        }
+    )
+}
+
 private fun List<PowerMenuAction>.move(fromIndex: Int, toIndex: Int): List<PowerMenuAction> =
     toMutableList().apply {
         add(toIndex, removeAt(fromIndex))
@@ -1000,6 +1123,12 @@ sealed interface SystemUIEvent {
 
         @JvmInline
         value class StatusBarRightPaddingDp(val value: Float) : StatusBar
+
+        @JvmInline
+        value class StatusBarTopPaddingDp(val value: Float) : StatusBar
+
+        @JvmInline
+        value class StatusBarBottomPaddingDp(val value: Float) : StatusBar
 
         @JvmInline
         value class SetBatteryIconWidthScale(val value: Boolean) : StatusBar
@@ -1042,6 +1171,9 @@ sealed interface SystemUIEvent {
 
         @JvmInline
         value class StatusBarDoubleLineClockSize(val value: String) : StatusBar
+
+        @JvmInline
+        value class DoubleLineClockGapDp(val value: Float) : StatusBar
 
         @JvmInline
         value class SetStatusBarClockTextScale(val value: Boolean) : StatusBar
@@ -1217,6 +1349,26 @@ private fun SettingViewModel.onStatusBarEvent(event: SystemUIEvent.StatusBar) {
                 )
             }
 
+            is SystemUIEvent.StatusBar.StatusBarTopPaddingDp -> {
+                preference.copy(
+                    systemUI = preference.systemUI.copy(
+                        statusBar = preference.systemUI.statusBar.copy(
+                            statusBarTopPaddingDp = event.value
+                        )
+                    )
+                )
+            }
+
+            is SystemUIEvent.StatusBar.StatusBarBottomPaddingDp -> {
+                preference.copy(
+                    systemUI = preference.systemUI.copy(
+                        statusBar = preference.systemUI.statusBar.copy(
+                            statusBarBottomPaddingDp = event.value
+                        )
+                    )
+                )
+            }
+
             is SystemUIEvent.StatusBar.SetBatteryIconWidthScale -> {
                 preference.copy(
                     systemUI = preference.systemUI.copy(
@@ -1363,6 +1515,16 @@ private fun SettingViewModel.onStatusBarEvent(event: SystemUIEvent.StatusBar) {
                     systemUI = preference.systemUI.copy(
                         statusBar = preference.systemUI.statusBar.copy(
                             statusBarDoubleLineClockSize = event.value
+                        )
+                    )
+                )
+            }
+
+            is SystemUIEvent.StatusBar.DoubleLineClockGapDp -> {
+                preference.copy(
+                    systemUI = preference.systemUI.copy(
+                        statusBar = preference.systemUI.statusBar.copy(
+                            doubleLineClockGapDp = event.value
                         )
                     )
                 )

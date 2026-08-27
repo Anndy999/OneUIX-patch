@@ -1,4 +1,4 @@
-name: Build and Release OneUIX anndy999 V8 Samsung Fit
+name: Build and Release OneUIX anndy999 V11 Fold Fit
 
 on:
   workflow_dispatch:
@@ -42,17 +42,17 @@ jobs:
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk \
-            dist/OneUIX-anndy999-v8-samsung-fit.apk
+            dist/OneUIX-anndy999-v11-fold-fit.apk
 
       - name: Create GitHub Release and upload APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v8.0.${{ github.run_number }}
-          name: OneUIX anndy999 V8 Samsung Fit
+          tag_name: v11.0.${{ github.run_number }}
+          name: OneUIX anndy999 V11 Fold Fit
           target_commitish: ${{ github.sha }}
           body: >-
-            Samsung-fit two-line status-bar clock built directly from the repository source.
-          files: dist/OneUIX-anndy999-v8-samsung-fit.apk
+            Fold-fit two-line status-bar clock built directly from the repository source.
+          files: dist/OneUIX-anndy999-v11-fold-fit.apk
           overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

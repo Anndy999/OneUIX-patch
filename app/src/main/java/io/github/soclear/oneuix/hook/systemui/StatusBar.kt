@@ -55,12 +55,38 @@ object StatusBar {
 
     private val singleLineClockLayouts = WeakHashMap<TextView, SingleLineClockLayout>()
 
-    private fun doubleLineClockStyle(size: String): DoubleLineClockStyle = when (size) {
-        "small" -> DoubleLineClockStyle(0.76f, 0.64f, 0.72f)
-        "compact" -> DoubleLineClockStyle(0.80f, 0.68f, 0.69f)
-        "large" -> DoubleLineClockStyle(0.88f, 0.76f, 0.62f)
-        "extra_large" -> DoubleLineClockStyle(0.92f, 0.80f, 0.58f)
-        else -> DoubleLineClockStyle(0.84f, 0.72f, 0.66f)
+    private data class OriginalPadding(
+        val start: Int,
+        val top: Int,
+        val end: Int,
+        val bottom: Int,
+    )
+
+    private val statusBarOriginalPaddings = WeakHashMap<View, OriginalPadding>()
+
+    private fun doubleLineClockStyle(
+        persistedSize: String,
+        legacyPresetScale: Float,
+    ): DoubleLineClockStyle {
+        // V10 stored the five choices in the old floating-point clock-scale setting.
+        // Preserve that selection until the user picks a V11 string-backed choice.
+        val size = when (persistedSize) {
+            "small", "compact", "standard", "large", "extra_large" -> persistedSize
+            else -> when {
+                legacyPresetScale < 0.925f -> "small"
+                legacyPresetScale < 0.975f -> "compact"
+                legacyPresetScale < 1.025f -> "standard"
+                legacyPresetScale < 1.075f -> "large"
+                else -> "extra_large"
+            }
+        }
+        return when (size) {
+            "small" -> DoubleLineClockStyle(0.74f, 0.68f, 0.72f)
+            "compact" -> DoubleLineClockStyle(0.78f, 0.72f, 0.69f)
+            "large" -> DoubleLineClockStyle(0.86f, 0.80f, 0.63f)
+            "extra_large" -> DoubleLineClockStyle(0.90f, 0.84f, 0.60f)
+            else -> DoubleLineClockStyle(0.82f, 0.76f, 0.66f)
+        }
     }
 
     fun setStatusBarPaddingDp(loadPackageParam: LoadPackageParam, left: Float?, right: Float?) {
@@ -102,6 +128,58 @@ object StatusBar {
                     }
                 )
             }
+        } catch (t: Throwable) {
+            XposedBridge.log(t)
+        }
+    }
+
+    fun setStatusBarVerticalPadding(
+        loadPackageParam: LoadPackageParam,
+        topDp: Float,
+        bottomDp: Float,
+    ) {
+        if (loadPackageParam.packageName != Package.SYSTEMUI) return
+        val phoneStatusBarViewClass = findClassIfExists(
+            "com.android.systemui.statusbar.phone.PhoneStatusBarView",
+            loadPackageParam.classLoader
+        ) ?: return
+        try {
+            hookAllMethods(phoneStatusBarViewClass, "onLayout", object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    val statusBarView = param.thisObject as? View ?: return
+                    val density = statusBarView.resources.displayMetrics.density
+                    val topPx = (topDp.coerceIn(0f, 8f) * density).roundToInt()
+                    val bottomPx = (bottomDp.coerceIn(0f, 8f) * density).roundToInt()
+                    val leftAndRightContainers = listOf(
+                        "status_bar_left_side",
+                        "system_icon_area",
+                    ).mapNotNull { name ->
+                        val id = statusBarView.resources.getIdentifier(
+                            name,
+                            "id",
+                            Package.SYSTEMUI
+                        )
+                        statusBarView.findViewById<View>(id)
+                    }.distinct()
+                    val targets = leftAndRightContainers.ifEmpty { listOf(statusBarView) }
+                    targets.forEach { target ->
+                        val original = statusBarOriginalPaddings.getOrPut(target) {
+                            OriginalPadding(
+                                target.paddingStart,
+                                target.paddingTop,
+                                target.paddingEnd,
+                                target.paddingBottom,
+                            )
+                        }
+                        target.setPaddingRelative(
+                            original.start,
+                            original.top + topPx,
+                            original.end,
+                            original.bottom + bottomPx,
+                        )
+                    }
+                }
+            })
         } catch (t: Throwable) {
             XposedBridge.log(t)
         }
@@ -211,6 +289,8 @@ object StatusBar {
         loadPackageParam: LoadPackageParam,
         format: String,
         doubleLineClockSize: String,
+        legacyDoubleLinePresetScale: Float,
+        doubleLineClockGapDp: Float,
     ) {
         if (loadPackageParam.packageName != Package.SYSTEMUI) return
         val dateTimeFormatter = try {
@@ -218,7 +298,11 @@ object StatusBar {
         } catch (_: Throwable) {
             DateTimeFormatter.ofPattern("HH:mm")
         }
-        setStatusBarClockText(loadPackageParam, doubleLineClockStyle(doubleLineClockSize)) {
+        setStatusBarClockText(
+            loadPackageParam,
+            doubleLineClockStyle(doubleLineClockSize, legacyDoubleLinePresetScale),
+            doubleLineClockGapDp,
+        ) {
             dateTimeFormatter.format(LocalDateTime.now())
         }
     }
@@ -226,6 +310,7 @@ object StatusBar {
     private fun setStatusBarClockText(
         loadPackageParam: LoadPackageParam,
         doubleLineClockStyle: DoubleLineClockStyle,
+        doubleLineClockGapDp: Float,
         block: () -> String,
     ) {
         if (loadPackageParam.packageName != Package.SYSTEMUI) return
@@ -236,8 +321,9 @@ object StatusBar {
                 val firstLineEnd = dateTime.indexOf('\n')
                 if (firstLineEnd >= 0) {
                     singleLineClockLayouts.getOrPut(clockTextView) {
+                        val layoutParams = clockTextView.layoutParams
                         SingleLineClockLayout(
-                            height = clockTextView.layoutParams?.height,
+                            height = layoutParams?.height,
                             parentGravity = (clockTextView.parent as? LinearLayout)?.gravity,
                             gravity = clockTextView.gravity,
                             includeFontPadding = clockTextView.includeFontPadding,
@@ -260,14 +346,16 @@ object StatusBar {
                     clockTextView.includeFontPadding = false
                     clockTextView.ellipsize = null
                     clockTextView.setHorizontallyScrolling(false)
+                    val density = clockTextView.resources.displayMetrics.density
                     clockTextView.setPaddingRelative(
                         clockTextView.paddingStart,
                         0,
                         clockTextView.paddingEnd,
                         0
                     )
-                    clockTextView.setLineSpacing(0f, doubleLineClockStyle.lineSpacing)
-                    val density = clockTextView.resources.displayMetrics.density
+                    val extraLineGapPx =
+                        doubleLineClockGapDp.coerceIn(0f, 2f) * density
+                    clockTextView.setLineSpacing(extraLineGapPx, doubleLineClockStyle.lineSpacing)
                     clockTextView.translationY = -0.65f * density
 
                     clockTextView.text = SpannableString(dateTime).apply {

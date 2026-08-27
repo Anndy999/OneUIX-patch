@@ -300,6 +300,16 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                     Network.showSeparateUpDownNetworkSpeeds(lpparam)
                 }
 
+                val statusBarTopPaddingDp = preference.systemUI.statusBar.statusBarTopPaddingDp
+                val statusBarBottomPaddingDp = preference.systemUI.statusBar.statusBarBottomPaddingDp
+                if (statusBarTopPaddingDp != 0f || statusBarBottomPaddingDp != 0f) {
+                    StatusBar.setStatusBarVerticalPadding(
+                        lpparam,
+                        statusBarTopPaddingDp,
+                        statusBarBottomPaddingDp,
+                    )
+                }
+
                 val statusBarClockFormat = preference.systemUI.statusBar.statusBarClockFormat
                 val usesDoubleLineClock = preference.systemUI.statusBar.setStatusBarClockFormat &&
                     statusBarClockFormat.contains('\n')
@@ -309,7 +319,9 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                     StatusBar.setStatusBarClockFormat(
                         lpparam,
                         statusBarClockFormat,
-                        doubleLineClockSize
+                        doubleLineClockSize,
+                        preference.systemUI.statusBar.statusBarClockTextScale,
+                        preference.systemUI.statusBar.doubleLineClockGapDp,
                     )
                 }
 
