@@ -1,0 +1,151 @@
+name: Build V9 Line Gap From ZIP
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/OneUIX-anndy999-v9-linegap-source.zip'
+      - '.github/workflows/build-v9-linegap-from-zip.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: oneuix-v9-linegap
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Extract V9 source
+        shell: bash
+        run: |
+          rm -rf buildsrc
+          mkdir -p buildsrc
+          unzip -q ".github/workflows/OneUIX-anndy999-v9-linegap-source.zip" -d buildsrc
+
+          SRC_DIR="$(find buildsrc -maxdepth 2 -type f -name gradlew -printf '%h\n' | head -n 1)"
+          if [ -z "$SRC_DIR" ]; then
+            echo "ERROR: gradlew not found after extracting V9 source."
+            exit 1
+          fi
+
+          echo "SRC_DIR=$SRC_DIR" >> "$GITHUB_ENV"
+          echo "Detected source root: $SRC_DIR"
+
+      - name: Self-check V9 source
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import xml.etree.ElementTree as ET
+
+          root = Path(os.environ["SRC_DIR"])
+          status = root / "app/src/main/java/io/github/soclear/oneuix/hook/systemui/StatusBar.kt"
+          main = root / "app/src/main/java/io/github/soclear/oneuix/hook/Main.kt"
+          ui = root / "app/src/main/java/io/github/soclear/oneuix/ui/category/DetailPaneSystemUI.kt"
+          gradle = root / "app/build.gradle.kts"
+
+          s = status.read_text(encoding="utf-8")
+          m = main.read_text(encoding="utf-8")
+          u = ui.read_text(encoding="utf-8")
+          g = gradle.read_text(encoding="utf-8")
+
+          checks = {
+              "extra 0.60dp line gap":
+                  "val extraLineGap = 0.60f * density" in s,
+              "additive line spacing":
+                  "setLineSpacing(extraLineGap, style.lineSpacing)" in s,
+              "full-height vertical centering":
+                  "ViewGroup.LayoutParams.MATCH_PARENT" in s and
+                  "Gravity.CENTER_VERTICAL" in s,
+              "V8 optical centering preserved":
+                  "translationY = -0.65f * density" in s,
+              "single-line reset preserved":
+                  "setLineSpacing(0f, 1f)" in s and
+                  "translationY = 0f" in s,
+              "five size presets preserved":
+                  all(x in s for x in [
+                      "0.76f, 0.64f, 0.72f",
+                      "0.80f, 0.68f, 0.69f",
+                      "0.84f, 0.72f, 0.66f",
+                      "0.88f, 0.76f, 0.63f",
+                      "0.92f, 0.80f, 0.60f",
+                  ]),
+              "preset UI preserved":
+                  "doubleLineClockSize_title" in u and
+                  "presetValues = listOf(0.90f, 0.95f, 1.00f, 1.05f, 1.10f)" in u,
+              "double-line avoids duplicate base scaling":
+                  "isDoubleLineStatusBarClock" in m,
+              "no old dynamic shrinking":
+                  "safeHeight" not in s and "AbsoluteSizeSpan" not in s,
+              "stable modified package id":
+                  'applicationId = "io.github.anndy999.oneuix"' in g,
+              "V9 version":
+                  "versionCode = 21" in g and
+                  'versionName = "1.7.0-anndy999-v9-linegap"' in g,
+          }
+
+          for name, ok in checks.items():
+              print(("PASS" if ok else "FAIL") + " - " + name)
+
+          failed = [name for name, ok in checks.items() if not ok]
+          if failed:
+              raise SystemExit("V9 self-check failed: " + ", ".join(failed))
+
+          for xml_file in (root / "app/src/main").rglob("*.xml"):
+              ET.parse(xml_file)
+          print("PASS - Android XML resources are well-formed")
+          print("V9 source self-check completed successfully.")
+          PY
+
+      - name: Build APK
+        shell: bash
+        run: |
+          cd "$SRC_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "$SRC_DIR/app/build/outputs/apk/debug/app-debug.apk" \
+             "dist/OneUIX-anndy999-v9-linegap.apk"
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v9.0.${GITHUB_RUN_NUMBER}"
+          APK="dist/OneUIX-anndy999-v9-linegap.apk"
+
+          gh release create "$TAG" "$APK" \
+            --target "$GITHUB_SHA" \
+            --title "OneUIX anndy999 V9 Line Gap" \
+            --notes "V9 keeps the V8 size presets and confirmed vertical centering, while adding a small +0.60dp physical gap between the time and date lines to better match the reference layout."
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: OneUIX-anndy999-v9-linegap
+          path: dist/OneUIX-anndy999-v9-linegap.apk
+          retention-days: 7
+          archive: false
