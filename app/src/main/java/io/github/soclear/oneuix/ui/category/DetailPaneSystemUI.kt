@@ -185,6 +185,7 @@ fun DetailPaneSystemUI(
         }
         StatusBarVerticalPaddingControl(
             title = stringResource(id = R.string.statusBarTopPaddingDp_title),
+            summaryRes = R.string.statusBarTopPaddingDp_summary,
             currentValue = uiState.statusBar.statusBarTopPaddingDp,
             onValueChangeFinished = {
                 onEvent(SystemUIEvent.StatusBar.StatusBarTopPaddingDp(it))
@@ -192,6 +193,7 @@ fun DetailPaneSystemUI(
         )
         StatusBarVerticalPaddingControl(
             title = stringResource(id = R.string.statusBarBottomPaddingDp_title),
+            summaryRes = R.string.statusBarBottomPaddingDp_summary,
             currentValue = uiState.statusBar.statusBarBottomPaddingDp,
             onValueChangeFinished = {
                 onEvent(SystemUIEvent.StatusBar.StatusBarBottomPaddingDp(it))
@@ -1055,6 +1057,7 @@ private fun PowerMenuActionEditor(
 @Composable
 private fun StatusBarVerticalPaddingControl(
     title: String,
+    @StringRes summaryRes: Int,
     currentValue: Float,
     onValueChangeFinished: (Float) -> Unit,
 ) {
@@ -1064,7 +1067,7 @@ private fun StatusBarVerticalPaddingControl(
         supportingContent = {
             Text(
                 text = stringResource(
-                    id = R.string.statusBarVerticalPadding_summary,
+                    id = summaryRes,
                     value
                 )
             )

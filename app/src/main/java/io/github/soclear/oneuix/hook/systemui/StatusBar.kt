@@ -56,14 +56,7 @@ object StatusBar {
 
     private val singleLineClockLayouts = WeakHashMap<TextView, SingleLineClockLayout>()
 
-    private data class OriginalPadding(
-        val start: Int,
-        val top: Int,
-        val end: Int,
-        val bottom: Int,
-    )
-
-    private val statusBarOriginalPaddings = WeakHashMap<View, OriginalPadding>()
+    private val statusBarOriginalTranslations = WeakHashMap<View, Float>()
 
     private fun doubleLineClockStyle(
         persistedSize: String,
@@ -164,20 +157,13 @@ object StatusBar {
                     }.distinct()
                     val targets = leftAndRightContainers.ifEmpty { listOf(statusBarView) }
                     targets.forEach { target ->
-                        val original = statusBarOriginalPaddings.getOrPut(target) {
-                            OriginalPadding(
-                                target.paddingStart,
-                                target.paddingTop,
-                                target.paddingEnd,
-                                target.paddingBottom,
-                            )
+                        val originalTranslationY = statusBarOriginalTranslations.getOrPut(target) {
+                            target.translationY
                         }
-                        target.setPaddingRelative(
-                            original.start,
-                            original.top + topPx,
-                            original.end,
-                            original.bottom + bottomPx,
-                        )
+                        // Padding inside Samsung's fixed-height indicator containers is often
+                        // ignored by their child layout. A translation changes the rendered
+                        // position of both sides reliably: top moves down, bottom moves up.
+                        target.translationY = originalTranslationY + topPx - bottomPx
                     }
                 }
             })

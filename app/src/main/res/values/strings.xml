@@ -13,7 +13,8 @@
     <string name="statusBarRightPaddingDp_title">Modify status bar right padding</string>
     <string name="statusBarTopPaddingDp_title">Status bar top margin</string>
     <string name="statusBarBottomPaddingDp_title">Status bar bottom margin</string>
-    <string name="statusBarVerticalPadding_summary">Applies to both left and right status bar areas: %1$.1f dp</string>
+    <string name="statusBarTopPaddingDp_summary">Moves both left and right areas down: %1$.1f dp</string>
+    <string name="statusBarBottomPaddingDp_summary">Moves both left and right areas up: %1$.1f dp</string>
     <string name="setBatteryIconWidthScale_title">Set battery icon width scale factor</string>
     <string name="setBatteryIconHeightScale_title">Set battery icon height scale factor</string>
     <string name="hideBatteryPercentageSign_title">Hide battery percentage sign in status bar</string>

@@ -13,7 +13,8 @@
     <string name="statusBarRightPaddingDp_title">修改状态栏右边距</string>
     <string name="statusBarTopPaddingDp_title">状态栏顶部边距</string>
     <string name="statusBarBottomPaddingDp_title">状态栏底部边距</string>
-    <string name="statusBarVerticalPadding_summary">同时作用于状态栏左侧和右侧区域：%1$.1f dp</string>
+    <string name="statusBarTopPaddingDp_summary">同时向下移动状态栏左侧和右侧区域：%1$.1f dp</string>
+    <string name="statusBarBottomPaddingDp_summary">同时向上移动状态栏左侧和右侧区域：%1$.1f dp</string>
     <string name="setBatteryIconWidthScale_title">设置电池图标宽度缩放倍数</string>
     <string name="setBatteryIconHeightScale_title">设置电池图标高度缩放倍数</string>
     <string name="hideBatteryPercentageSign_title">隐藏状态栏电池的百分号</string>
