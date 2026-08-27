@@ -1,4 +1,4 @@
-name: Build and Release OneUIX anndy999 V14 Fold7 Fit
+name: Build and Release OneUIX anndy999 V15 Fold7 Live Gap
 
 on:
   workflow_dispatch:
@@ -42,17 +42,17 @@ jobs:
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk \
-            dist/OneUIX-anndy999-v14-fold7-fit.apk
+            dist/OneUIX-anndy999-v15-fold7-live-gap.apk
 
       - name: Create GitHub Release and upload APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v14.0.${{ github.run_number }}
-          name: OneUIX anndy999 V14 Fold7 Fit
+          tag_name: v15.0.${{ github.run_number }}
+          name: OneUIX anndy999 V15 Fold7 Live Gap
           target_commitish: ${{ github.sha }}
           body: >-
-            Fold7-fit two-line status-bar clock built directly from the repository source.
-          files: dist/OneUIX-anndy999-v14-fold7-fit.apk
+            Fold7 two-line clock gap refresh fix built directly from the repository source.
+          files: dist/OneUIX-anndy999-v15-fold7-live-gap.apk
           overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

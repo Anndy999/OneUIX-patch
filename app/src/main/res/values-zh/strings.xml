@@ -44,9 +44,9 @@
     <string name="statusBarDoubleLineClockSize_large">较大</string>
     <string name="statusBarDoubleLineClockSize_extraLarge">大</string>
     <string name="statusBarDoubleLineClockGap_title">双行时间上下间距</string>
-    <string name="statusBarDoubleLineClockGap_summary">当前间距：%1$.1f dp</string>
+    <string name="statusBarDoubleLineClockGap_summary">当前间距：%1$.1f dp；修改后立即生效。</string>
     <string name="fold7CustomDoubleLineClockScale_title">使用 Fold7 自定义双行字号</string>
-    <string name="fold7CustomDoubleLineClockScale_summary">默认：时间 1.00×，日期 0.80×。仅适用于 Fold7；修改后请重启 System UI。</string>
+    <string name="fold7CustomDoubleLineClockScale_summary">默认：时间 1.00×，日期 0.80×。仅适用于 Fold7；修改后立即生效。</string>
     <string name="fold7DoubleLineClockTimeScale_title">Fold7 时间字号倍率</string>
     <string name="fold7DoubleLineClockTimeScale_summary">当前时间倍率：%1$.2f×</string>
     <string name="fold7DoubleLineClockDateScale_title">Fold7 日期字号倍率</string>

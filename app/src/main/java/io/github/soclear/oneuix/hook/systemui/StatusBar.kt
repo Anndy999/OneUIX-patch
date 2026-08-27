@@ -59,6 +59,15 @@ object StatusBar {
     )
 
     private val singleLineClockLayouts = WeakHashMap<TextView, SingleLineClockLayout>()
+    private val doubleLineClockViews = WeakHashMap<TextView, Unit>()
+
+    private data class DoubleLineClockRuntimeConfig(
+        val style: DoubleLineClockStyle,
+        val extraLineGapDp: Float,
+    )
+
+    @Volatile
+    private var doubleLineClockRuntimeConfig: DoubleLineClockRuntimeConfig? = null
 
     private val statusBarOriginalTranslations = WeakHashMap<View, Float>()
     private val statusBarViews = WeakHashMap<View, Unit>()
@@ -71,7 +80,7 @@ object StatusBar {
     @Volatile
     private var statusBarVerticalOffset = StatusBarVerticalOffset(0f, 0f)
 
-    private var statusBarVerticalPreferenceObserver: FileObserver? = null
+    private var statusBarPreferenceObserver: FileObserver? = null
 
     private fun View.findStatusBarArea(vararg resourceNames: String): View? {
         resourceNames.forEach { resourceName ->
@@ -95,11 +104,11 @@ object StatusBar {
         }
     }
 
-    private fun observeStatusBarVerticalOffsetPreference() {
-        if (statusBarVerticalPreferenceObserver != null) return
+    private fun observeStatusBarPreference() {
+        if (statusBarPreferenceObserver != null) return
         val preferenceFile = PreferenceProvider.getPreferenceFile()
         val parentDirectory = preferenceFile.parentFile ?: return
-        statusBarVerticalPreferenceObserver = object : FileObserver(
+        statusBarPreferenceObserver = object : FileObserver(
             parentDirectory,
             FileObserver.CLOSE_WRITE or FileObserver.MOVED_TO,
         ) {
@@ -111,6 +120,19 @@ object StatusBar {
                             statusBar.statusBarTopPaddingDp,
                             statusBar.statusBarBottomPaddingDp,
                         )
+                        if (
+                            statusBar.setStatusBarClockFormat &&
+                            statusBar.statusBarClockFormat.contains('\n')
+                        ) {
+                            updateDoubleLineClockRuntimeConfig(
+                                statusBar.statusBarDoubleLineClockSize,
+                                statusBar.statusBarClockTextScale,
+                                statusBar.doubleLineClockGapDp,
+                                statusBar.useFold7CustomDoubleLineClockScale,
+                                statusBar.fold7DoubleLineClockTimeScale,
+                                statusBar.fold7DoubleLineClockDateScale,
+                            )
+                        }
                     }
                 }
             }
@@ -197,7 +219,7 @@ object StatusBar {
             val dateScale = if (useFold7CustomScale) {
                 fold7DateScale.coerceIn(0.50f, 0.90f)
             } else 0.80f
-            return DoubleLineClockStyle(timeScale, dateScale, 0.50f, -0.85f)
+            return DoubleLineClockStyle(timeScale, dateScale, 0.66f, -0.85f)
         }
         return when (size) {
             "small" -> DoubleLineClockStyle(0.74f, 0.68f, 0.72f, -0.65f)
@@ -205,6 +227,44 @@ object StatusBar {
             "large" -> DoubleLineClockStyle(0.86f, 0.80f, 0.63f, -0.65f)
             "extra_large" -> DoubleLineClockStyle(0.90f, 0.84f, 0.60f, -0.65f)
             else -> DoubleLineClockStyle(0.82f, 0.76f, 0.66f, -0.65f)
+        }
+    }
+
+    private fun updateDoubleLineClockRuntimeConfig(
+        persistedSize: String,
+        legacyPresetScale: Float,
+        extraLineGapDp: Float,
+        useFold7CustomScale: Boolean,
+        fold7TimeScale: Float,
+        fold7DateScale: Float,
+    ) {
+        val runtimeConfig = DoubleLineClockRuntimeConfig(
+            style = doubleLineClockStyle(
+                persistedSize,
+                legacyPresetScale,
+                useFold7CustomScale,
+                fold7TimeScale,
+                fold7DateScale,
+            ),
+            extraLineGapDp = extraLineGapDp.coerceIn(0f, 2f),
+        )
+        doubleLineClockRuntimeConfig = runtimeConfig
+        val activeClockViews = synchronized(doubleLineClockViews) {
+            doubleLineClockViews.keys.toList()
+        }
+        activeClockViews.forEach { clockTextView ->
+            clockTextView.post {
+                val dateTime = clockTextView.text?.toString() ?: return@post
+                if (dateTime.contains('\n')) {
+                    applyDoubleLineClockText(clockTextView, dateTime, runtimeConfig)
+                }
+            }
+        }
+    }
+
+    private fun registerDoubleLineClockView(clockTextView: TextView) {
+        synchronized(doubleLineClockViews) {
+            doubleLineClockViews[clockTextView] = Unit
         }
     }
 
@@ -259,7 +319,7 @@ object StatusBar {
     ) {
         if (loadPackageParam.packageName != Package.SYSTEMUI) return
         updateStatusBarVerticalOffset(topDp, bottomDp)
-        observeStatusBarVerticalOffsetPreference()
+        observeStatusBarPreference()
         val phoneStatusBarViewClass = findClassIfExists(
             "com.android.systemui.statusbar.phone.PhoneStatusBarView",
             loadPackageParam.classLoader
@@ -395,25 +455,91 @@ object StatusBar {
         } catch (_: Throwable) {
             DateTimeFormatter.ofPattern("HH:mm")
         }
+        updateDoubleLineClockRuntimeConfig(
+            doubleLineClockSize,
+            legacyDoubleLinePresetScale,
+            doubleLineClockGapDp,
+            useFold7CustomScale,
+            fold7TimeScale,
+            fold7DateScale,
+        )
+        observeStatusBarPreference()
         setStatusBarClockText(
             loadPackageParam,
-            doubleLineClockStyle(
-                doubleLineClockSize,
-                legacyDoubleLinePresetScale,
-                useFold7CustomScale,
-                fold7TimeScale,
-                fold7DateScale,
-            ),
-            doubleLineClockGapDp,
         ) {
             dateTimeFormatter.format(LocalDateTime.now())
         }
     }
 
+    private fun applyDoubleLineClockText(
+        clockTextView: TextView,
+        dateTime: String,
+        runtimeConfig: DoubleLineClockRuntimeConfig,
+    ) {
+        val firstLineEnd = dateTime.indexOf('\n')
+        if (firstLineEnd < 0) return
+        val doubleLineClockStyle = runtimeConfig.style
+        singleLineClockLayouts.getOrPut(clockTextView) {
+            val layoutParams = clockTextView.layoutParams
+            SingleLineClockLayout(
+                height = layoutParams?.height,
+                parentGravity = (clockTextView.parent as? LinearLayout)?.gravity,
+                gravity = clockTextView.gravity,
+                includeFontPadding = clockTextView.includeFontPadding,
+                paddingTop = clockTextView.paddingTop,
+                paddingBottom = clockTextView.paddingBottom,
+            )
+        }
+
+        clockTextView.layoutParams?.let { params ->
+            params.height = ViewGroup.LayoutParams.MATCH_PARENT
+            clockTextView.layoutParams = params
+        }
+        (clockTextView.parent as? LinearLayout)?.gravity = Gravity.CENTER_VERTICAL
+        clockTextView.gravity =
+            (clockTextView.gravity and Gravity.VERTICAL_GRAVITY_MASK.inv()) or
+                Gravity.CENTER_VERTICAL
+        clockTextView.isSingleLine = false
+        clockTextView.maxLines = 2
+        clockTextView.minLines = 2
+        clockTextView.includeFontPadding = false
+        clockTextView.ellipsize = null
+        clockTextView.setHorizontallyScrolling(false)
+        val density = clockTextView.resources.displayMetrics.density
+        clockTextView.setPaddingRelative(
+            clockTextView.paddingStart,
+            0,
+            clockTextView.paddingEnd,
+            0
+        )
+        val extraLineGapPx = runtimeConfig.extraLineGapDp * density
+        clockTextView.setLineSpacing(extraLineGapPx, doubleLineClockStyle.lineSpacing)
+        clockTextView.translationY = doubleLineClockStyle.opticalTranslationYDp * density
+        clockTextView.text = SpannableString(dateTime).apply {
+            if (firstLineEnd > 0) {
+                setSpan(
+                    RelativeSizeSpan(doubleLineClockStyle.timeScale),
+                    0,
+                    firstLineEnd,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            if (firstLineEnd + 1 < length) {
+                setSpan(
+                    RelativeSizeSpan(doubleLineClockStyle.dateScale),
+                    firstLineEnd + 1,
+                    length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+        clockTextView.contentDescription = dateTime.replace('\n', ' ')
+        clockTextView.requestLayout()
+        clockTextView.invalidate()
+    }
+
     private fun setStatusBarClockText(
         loadPackageParam: LoadPackageParam,
-        doubleLineClockStyle: DoubleLineClockStyle,
-        doubleLineClockGapDp: Float,
         block: () -> String,
     ) {
         if (loadPackageParam.packageName != Package.SYSTEMUI) return
@@ -423,63 +549,9 @@ object StatusBar {
                 val dateTime = block()
                 val firstLineEnd = dateTime.indexOf('\n')
                 if (firstLineEnd >= 0) {
-                    singleLineClockLayouts.getOrPut(clockTextView) {
-                        val layoutParams = clockTextView.layoutParams
-                        SingleLineClockLayout(
-                            height = layoutParams?.height,
-                            parentGravity = (clockTextView.parent as? LinearLayout)?.gravity,
-                            gravity = clockTextView.gravity,
-                            includeFontPadding = clockTextView.includeFontPadding,
-                            paddingTop = clockTextView.paddingTop,
-                            paddingBottom = clockTextView.paddingBottom,
-                        )
-                    }
-
-                    clockTextView.layoutParams?.let { params ->
-                        params.height = ViewGroup.LayoutParams.MATCH_PARENT
-                        clockTextView.layoutParams = params
-                    }
-                    (clockTextView.parent as? LinearLayout)?.gravity = Gravity.CENTER_VERTICAL
-                    clockTextView.gravity =
-                        (clockTextView.gravity and Gravity.VERTICAL_GRAVITY_MASK.inv()) or
-                            Gravity.CENTER_VERTICAL
-                    clockTextView.isSingleLine = false
-                    clockTextView.maxLines = 2
-                    clockTextView.minLines = 2
-                    clockTextView.includeFontPadding = false
-                    clockTextView.ellipsize = null
-                    clockTextView.setHorizontallyScrolling(false)
-                    val density = clockTextView.resources.displayMetrics.density
-                    clockTextView.setPaddingRelative(
-                        clockTextView.paddingStart,
-                        0,
-                        clockTextView.paddingEnd,
-                        0
-                    )
-                    val extraLineGapPx =
-                        doubleLineClockGapDp.coerceIn(0f, 2f) * density
-                    clockTextView.setLineSpacing(extraLineGapPx, doubleLineClockStyle.lineSpacing)
-                    clockTextView.translationY =
-                        doubleLineClockStyle.opticalTranslationYDp * density
-
-                    clockTextView.text = SpannableString(dateTime).apply {
-                        if (firstLineEnd > 0) {
-                            setSpan(
-                                RelativeSizeSpan(doubleLineClockStyle.timeScale),
-                                0,
-                                firstLineEnd,
-                                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                            )
-                        }
-                        if (firstLineEnd + 1 < length) {
-                            setSpan(
-                                RelativeSizeSpan(doubleLineClockStyle.dateScale),
-                                firstLineEnd + 1,
-                                length,
-                                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                            )
-                        }
-                    }
+                    val runtimeConfig = doubleLineClockRuntimeConfig ?: return null
+                    registerDoubleLineClockView(clockTextView)
+                    applyDoubleLineClockText(clockTextView, dateTime, runtimeConfig)
                 } else {
                     singleLineClockLayouts.remove(clockTextView)?.let { original ->
                         clockTextView.layoutParams?.let { params ->
