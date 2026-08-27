@@ -47,6 +47,13 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 private const val ESIM_ADAPTER_SIM_BOTH = 2
+private val DOUBLE_LINE_CLOCK_SIZE_VALUES = listOf(
+    "small",
+    "compact",
+    "standard",
+    "large",
+    "extra_large",
+)
 
 @Composable
 fun DetailPaneSystemUI(
@@ -348,6 +355,41 @@ fun DetailPaneSystemUI(
                         Text(text = stringResource(id = R.string.confirm))
                     }
                 }
+            }
+        }
+        AnimatedVisibility(
+            uiState.statusBar.setStatusBarClockFormat &&
+                uiState.statusBar.statusBarClockFormat.contains('\n')
+        ) {
+            Column {
+                val sizeLabels = listOf(
+                    stringResource(id = R.string.statusBarDoubleLineClockSize_small),
+                    stringResource(id = R.string.statusBarDoubleLineClockSize_compact),
+                    stringResource(id = R.string.statusBarDoubleLineClockSize_standard),
+                    stringResource(id = R.string.statusBarDoubleLineClockSize_large),
+                    stringResource(id = R.string.statusBarDoubleLineClockSize_extraLarge),
+                )
+                val selectedIndex = DOUBLE_LINE_CLOCK_SIZE_VALUES.indexOf(
+                    uiState.statusBar.statusBarDoubleLineClockSize
+                ).coerceAtLeast(0)
+                SelectItem(
+                    icon = ImageVector.vectorResource(id = R.drawable.format_size),
+                    title = stringResource(id = R.string.statusBarDoubleLineClockSize_title),
+                    entries = sizeLabels,
+                    selectedIndex = selectedIndex,
+                    onSelectedIndexChange = {
+                        onEvent(
+                            SystemUIEvent.StatusBar.StatusBarDoubleLineClockSize(
+                                DOUBLE_LINE_CLOCK_SIZE_VALUES[it]
+                            )
+                        )
+                    }
+                )
+                Text(
+                    text = stringResource(id = R.string.statusBarDoubleLineClockSize_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
             }
         }
         Column {
@@ -999,6 +1041,9 @@ sealed interface SystemUIEvent {
         value class StatusBarClockFormat(val value: String) : StatusBar
 
         @JvmInline
+        value class StatusBarDoubleLineClockSize(val value: String) : StatusBar
+
+        @JvmInline
         value class SetStatusBarClockTextScale(val value: Boolean) : StatusBar
 
         @JvmInline
@@ -1308,6 +1353,16 @@ private fun SettingViewModel.onStatusBarEvent(event: SystemUIEvent.StatusBar) {
                     systemUI = preference.systemUI.copy(
                         statusBar = preference.systemUI.statusBar.copy(
                             statusBarClockFormat = event.value
+                        )
+                    )
+                )
+            }
+
+            is SystemUIEvent.StatusBar.StatusBarDoubleLineClockSize -> {
+                preference.copy(
+                    systemUI = preference.systemUI.copy(
+                        statusBar = preference.systemUI.statusBar.copy(
+                            statusBarDoubleLineClockSize = event.value
                         )
                     )
                 )

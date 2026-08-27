@@ -51,6 +51,7 @@ data class Preference(
             val showSeparateUpDownNetworkSpeeds: Boolean = false,
             val setStatusBarClockFormat: Boolean = false,
             val statusBarClockFormat: String = "HH:mm",
+            val statusBarDoubleLineClockSize: String = "standard",
             val setStatusBarClockTextScale: Boolean = false,
             val statusBarClockTextScale: Float = 1f,
             val updateStatusBarClockEverySecond: Boolean = false,

@@ -14,11 +14,12 @@ android {
     }
 
     defaultConfig {
-        applicationId = "io.github.soclear.oneuix"
+        // Keep the established anndy999 application ID so V8 can update prior builds.
+        applicationId = "io.github.anndy999.oneuix"
         minSdk = 33
         targetSdk = 37
-        versionCode = 9
-        versionName = "1.7.0"
+        versionCode = 16
+        versionName = "1.7.0-anndy999-v8-samsung-fit"
 
         ndk {
             // ABI过滤，只加载 arm 架构 64 位动态链接库

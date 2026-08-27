@@ -7,6 +7,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.RelativeSizeSpan
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
@@ -35,6 +38,31 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 object StatusBar {
+    private data class DoubleLineClockStyle(
+        val timeScale: Float,
+        val dateScale: Float,
+        val lineSpacing: Float,
+    )
+
+    private data class SingleLineClockLayout(
+        val height: Int?,
+        val parentGravity: Int?,
+        val gravity: Int,
+        val includeFontPadding: Boolean,
+        val paddingTop: Int,
+        val paddingBottom: Int,
+    )
+
+    private val singleLineClockLayouts = WeakHashMap<TextView, SingleLineClockLayout>()
+
+    private fun doubleLineClockStyle(size: String): DoubleLineClockStyle = when (size) {
+        "small" -> DoubleLineClockStyle(0.76f, 0.64f, 0.72f)
+        "compact" -> DoubleLineClockStyle(0.80f, 0.68f, 0.69f)
+        "large" -> DoubleLineClockStyle(0.88f, 0.76f, 0.62f)
+        "extra_large" -> DoubleLineClockStyle(0.92f, 0.80f, 0.58f)
+        else -> DoubleLineClockStyle(0.84f, 0.72f, 0.66f)
+    }
+
     fun setStatusBarPaddingDp(loadPackageParam: LoadPackageParam, left: Float?, right: Float?) {
         if (loadPackageParam.packageName != io.github.soclear.oneuix.data.Package.SYSTEMUI ||
             left == null && right == null
@@ -179,26 +207,114 @@ object StatusBar {
         }
     }
 
-    fun setStatusBarClockFormat(loadPackageParam: LoadPackageParam, format: String) {
+    fun setStatusBarClockFormat(
+        loadPackageParam: LoadPackageParam,
+        format: String,
+        doubleLineClockSize: String,
+    ) {
         if (loadPackageParam.packageName != Package.SYSTEMUI) return
         val dateTimeFormatter = try {
             DateTimeFormatter.ofPattern(format)
         } catch (_: Throwable) {
             DateTimeFormatter.ofPattern("HH:mm")
         }
-        setStatusBarClockText(loadPackageParam) {
+        setStatusBarClockText(loadPackageParam, doubleLineClockStyle(doubleLineClockSize)) {
             dateTimeFormatter.format(LocalDateTime.now())
         }
     }
 
-    private fun setStatusBarClockText(loadPackageParam: LoadPackageParam, block: () -> String) {
+    private fun setStatusBarClockText(
+        loadPackageParam: LoadPackageParam,
+        doubleLineClockStyle: DoubleLineClockStyle,
+        block: () -> String,
+    ) {
         if (loadPackageParam.packageName != Package.SYSTEMUI) return
         val callback = object : XC_MethodReplacement() {
             override fun replaceHookedMethod(param: MethodHookParam): Any? {
                 val clockTextView = param.thisObject as TextView
                 val dateTime = block()
-                clockTextView.text = dateTime
-                clockTextView.contentDescription = dateTime
+                val firstLineEnd = dateTime.indexOf('\n')
+                if (firstLineEnd >= 0) {
+                    singleLineClockLayouts.getOrPut(clockTextView) {
+                        SingleLineClockLayout(
+                            height = clockTextView.layoutParams?.height,
+                            parentGravity = (clockTextView.parent as? LinearLayout)?.gravity,
+                            gravity = clockTextView.gravity,
+                            includeFontPadding = clockTextView.includeFontPadding,
+                            paddingTop = clockTextView.paddingTop,
+                            paddingBottom = clockTextView.paddingBottom,
+                        )
+                    }
+
+                    clockTextView.layoutParams?.let { params ->
+                        params.height = ViewGroup.LayoutParams.MATCH_PARENT
+                        clockTextView.layoutParams = params
+                    }
+                    (clockTextView.parent as? LinearLayout)?.gravity = Gravity.CENTER_VERTICAL
+                    clockTextView.gravity =
+                        (clockTextView.gravity and Gravity.VERTICAL_GRAVITY_MASK.inv()) or
+                            Gravity.CENTER_VERTICAL
+                    clockTextView.isSingleLine = false
+                    clockTextView.maxLines = 2
+                    clockTextView.minLines = 2
+                    clockTextView.includeFontPadding = false
+                    clockTextView.ellipsize = null
+                    clockTextView.setHorizontallyScrolling(false)
+                    clockTextView.setPaddingRelative(
+                        clockTextView.paddingStart,
+                        0,
+                        clockTextView.paddingEnd,
+                        0
+                    )
+                    clockTextView.setLineSpacing(0f, doubleLineClockStyle.lineSpacing)
+                    val density = clockTextView.resources.displayMetrics.density
+                    clockTextView.translationY = -0.65f * density
+
+                    clockTextView.text = SpannableString(dateTime).apply {
+                        if (firstLineEnd > 0) {
+                            setSpan(
+                                RelativeSizeSpan(doubleLineClockStyle.timeScale),
+                                0,
+                                firstLineEnd,
+                                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                            )
+                        }
+                        if (firstLineEnd + 1 < length) {
+                            setSpan(
+                                RelativeSizeSpan(doubleLineClockStyle.dateScale),
+                                firstLineEnd + 1,
+                                length,
+                                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                            )
+                        }
+                    }
+                } else {
+                    singleLineClockLayouts.remove(clockTextView)?.let { original ->
+                        clockTextView.layoutParams?.let { params ->
+                            original.height?.let { params.height = it }
+                            clockTextView.layoutParams = params
+                        }
+                        (clockTextView.parent as? LinearLayout)?.let { parent ->
+                            original.parentGravity?.let { parent.gravity = it }
+                        }
+                        clockTextView.gravity = original.gravity
+                        clockTextView.includeFontPadding = original.includeFontPadding
+                        clockTextView.setPaddingRelative(
+                            clockTextView.paddingStart,
+                            original.paddingTop,
+                            clockTextView.paddingEnd,
+                            original.paddingBottom
+                        )
+                    }
+                    clockTextView.isSingleLine = true
+                    clockTextView.maxLines = 1
+                    clockTextView.minLines = 1
+                    clockTextView.setLineSpacing(0f, 1f)
+                    clockTextView.setHorizontallyScrolling(false)
+                    clockTextView.translationY = 0f
+                    clockTextView.text = dateTime
+                }
+                clockTextView.contentDescription = dateTime.replace('\n', ' ')
                 return null
             }
         }

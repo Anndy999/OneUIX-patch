@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">One UI X</string>
+    <string name="app_name">One UI X · anndy999</string>
     <string name="xposed_description">Samsung One UI Extension</string>
     <string name="module_disabled_tip">Please enable this module in LSPosed</string>
     <string name="close">Close</string>
@@ -32,6 +32,13 @@
     <string name="immersiveModeQsTile_title">Enable Immersive mode Quick Settings tile</string>
     <string name="rootImmersiveModeQsTile_summary">Requires root access. Add the tile manually; tap it to hide or restore the status bar</string>
     <string name="setStatusBarClockFormat_title">Set status bar date and time format</string>
+    <string name="statusBarDoubleLineClockSize_title">Double-line status bar clock size</string>
+    <string name="statusBarDoubleLineClockSize_summary">Restart System UI after changing this setting. Large sizes may not fit on some devices.</string>
+    <string name="statusBarDoubleLineClockSize_small">Small</string>
+    <string name="statusBarDoubleLineClockSize_compact">Compact</string>
+    <string name="statusBarDoubleLineClockSize_standard">Standard (recommended)</string>
+    <string name="statusBarDoubleLineClockSize_large">Large</string>
+    <string name="statusBarDoubleLineClockSize_extraLarge">Extra large</string>
     <string name="setStatusBarClockTextScale_title">Set status bar clock scale factor</string>
     <string name="updateStatusBarClockEverySecond_title">Update status bar clock every second</string>
     <string name="updateStatusBarClockEverySecond_summary">Also sets numbers to monospaced font</string>

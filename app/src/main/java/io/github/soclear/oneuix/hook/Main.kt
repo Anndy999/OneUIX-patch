@@ -300,12 +300,22 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                     Network.showSeparateUpDownNetworkSpeeds(lpparam)
                 }
 
+                val statusBarClockFormat = preference.systemUI.statusBar.statusBarClockFormat
+                val usesDoubleLineClock = preference.systemUI.statusBar.setStatusBarClockFormat &&
+                    statusBarClockFormat.contains('\n')
                 if (preference.systemUI.statusBar.setStatusBarClockFormat) {
-                    val format = preference.systemUI.statusBar.statusBarClockFormat
-                    StatusBar.setStatusBarClockFormat(lpparam, format)
+                    val doubleLineClockSize =
+                        preference.systemUI.statusBar.statusBarDoubleLineClockSize
+                    StatusBar.setStatusBarClockFormat(
+                        lpparam,
+                        statusBarClockFormat,
+                        doubleLineClockSize
+                    )
                 }
 
-                if (preference.systemUI.statusBar.setStatusBarClockTextScale) {
+                if (preference.systemUI.statusBar.setStatusBarClockTextScale &&
+                    !usesDoubleLineClock
+                ) {
                     val scale = preference.systemUI.statusBar.statusBarClockTextScale
                     StatusBar.setStatusBarClockTextScale(lpparam, scale)
                 }
