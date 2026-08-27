@@ -58,6 +58,16 @@ object StatusBar {
 
     private val statusBarOriginalTranslations = WeakHashMap<View, Float>()
 
+    private fun View.findStatusBarArea(vararg resourceNames: String): View? {
+        resourceNames.forEach { resourceName ->
+            val id = resources.getIdentifier(resourceName, "id", Package.SYSTEMUI)
+            if (id != 0) {
+                findViewById<View>(id)?.let { return it }
+            }
+        }
+        return null
+    }
+
     private fun doubleLineClockStyle(
         persistedSize: String,
         legacyPresetScale: Float,
@@ -144,25 +154,31 @@ object StatusBar {
                     val density = statusBarView.resources.displayMetrics.density
                     val topPx = (topDp.coerceIn(0f, 8f) * density).roundToInt()
                     val bottomPx = (bottomDp.coerceIn(0f, 8f) * density).roundToInt()
-                    val leftAndRightContainers = listOf(
+                    // Samsung has kept PhoneStatusBarView across One UI releases, but the
+                    // internal left/right area IDs vary by device and firmware. Resolve one
+                    // container per side so nested aliases cannot receive the offset twice.
+                    val leftArea = statusBarView.findStatusBarArea(
                         "status_bar_left_side",
+                        "status_bar_start_side",
+                        "status_bar_start_side_content",
+                        "status_bar_left_container",
+                    )
+                    val rightArea = statusBarView.findStatusBarArea(
                         "system_icon_area",
-                    ).mapNotNull { name ->
-                        val id = statusBarView.resources.getIdentifier(
-                            name,
-                            "id",
-                            Package.SYSTEMUI
-                        )
-                        statusBarView.findViewById<View>(id)
-                    }.distinct()
+                        "status_bar_right_side",
+                        "status_bar_end_side",
+                        "status_bar_end_side_content",
+                        "status_icon_area",
+                    )
+                    val leftAndRightContainers = listOfNotNull(leftArea, rightArea).distinct()
                     val targets = leftAndRightContainers.ifEmpty { listOf(statusBarView) }
                     targets.forEach { target ->
                         val originalTranslationY = statusBarOriginalTranslations.getOrPut(target) {
                             target.translationY
                         }
-                        // Padding inside Samsung's fixed-height indicator containers is often
-                        // ignored by their child layout. A translation changes the rendered
-                        // position of both sides reliably: top moves down, bottom moves up.
+                        // Padding inside fixed-height indicator containers is often ignored by
+                        // their child layout. Translation works across Samsung screen sizes and
+                        // One UI layouts: top moves both areas down, bottom moves both areas up.
                         target.translationY = originalTranslationY + topPx - bottomPx
                     }
                 }

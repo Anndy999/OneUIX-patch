@@ -18,8 +18,8 @@ android {
         applicationId = "io.github.anndy999.oneuix"
         minSdk = 33
         targetSdk = 37
-        versionCode = 23
-        versionName = "1.7.0-anndy999-v11-fold-fit"
+        versionCode = 24
+        versionName = "1.7.0-anndy999-v12-samsung-fit"
 
         ndk {
             // ABI过滤，只加载 arm 架构 64 位动态链接库
