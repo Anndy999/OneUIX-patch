@@ -320,6 +320,9 @@ class Main : IXposedHookLoadPackage, IXposedHookInitPackageResources, IXposedHoo
                         doubleLineClockSize,
                         preference.systemUI.statusBar.statusBarClockTextScale,
                         preference.systemUI.statusBar.doubleLineClockGapDp,
+                        preference.systemUI.statusBar.useFold7CustomDoubleLineClockScale,
+                        preference.systemUI.statusBar.fold7DoubleLineClockTimeScale,
+                        preference.systemUI.statusBar.fold7DoubleLineClockDateScale,
                     )
                 }
 

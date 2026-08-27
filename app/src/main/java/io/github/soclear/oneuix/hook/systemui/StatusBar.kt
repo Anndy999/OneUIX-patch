@@ -46,6 +46,7 @@ object StatusBar {
         val timeScale: Float,
         val dateScale: Float,
         val lineSpacing: Float,
+        val opticalTranslationYDp: Float,
     )
 
     private data class SingleLineClockLayout(
@@ -169,6 +170,9 @@ object StatusBar {
     private fun doubleLineClockStyle(
         persistedSize: String,
         legacyPresetScale: Float,
+        useFold7CustomScale: Boolean,
+        fold7TimeScale: Float,
+        fold7DateScale: Float,
     ): DoubleLineClockStyle {
         // V10 stored the five choices in the old floating-point clock-scale setting.
         // Preserve that selection until the user picks a V11 string-backed choice.
@@ -182,12 +186,25 @@ object StatusBar {
                 else -> "extra_large"
             }
         }
+        // Fold7 keeps a one-line-height status-bar viewport, while its raw Clock
+        // text size is larger than on the slab Galaxy models. The dedicated
+        // default preserves the full time size and renders the date at 80%.
+        // Custom values are explicit user choices, never height-based fitting.
+        if (Build.MODEL.startsWith("SM-F966", ignoreCase = true)) {
+            val timeScale = if (useFold7CustomScale) {
+                fold7TimeScale.coerceIn(0.70f, 1.10f)
+            } else 1.00f
+            val dateScale = if (useFold7CustomScale) {
+                fold7DateScale.coerceIn(0.50f, 0.90f)
+            } else 0.80f
+            return DoubleLineClockStyle(timeScale, dateScale, 0.50f, -0.85f)
+        }
         return when (size) {
-            "small" -> DoubleLineClockStyle(0.74f, 0.68f, 0.72f)
-            "compact" -> DoubleLineClockStyle(0.78f, 0.72f, 0.69f)
-            "large" -> DoubleLineClockStyle(0.86f, 0.80f, 0.63f)
-            "extra_large" -> DoubleLineClockStyle(0.90f, 0.84f, 0.60f)
-            else -> DoubleLineClockStyle(0.82f, 0.76f, 0.66f)
+            "small" -> DoubleLineClockStyle(0.74f, 0.68f, 0.72f, -0.65f)
+            "compact" -> DoubleLineClockStyle(0.78f, 0.72f, 0.69f, -0.65f)
+            "large" -> DoubleLineClockStyle(0.86f, 0.80f, 0.63f, -0.65f)
+            "extra_large" -> DoubleLineClockStyle(0.90f, 0.84f, 0.60f, -0.65f)
+            else -> DoubleLineClockStyle(0.82f, 0.76f, 0.66f, -0.65f)
         }
     }
 
@@ -368,6 +385,9 @@ object StatusBar {
         doubleLineClockSize: String,
         legacyDoubleLinePresetScale: Float,
         doubleLineClockGapDp: Float,
+        useFold7CustomScale: Boolean,
+        fold7TimeScale: Float,
+        fold7DateScale: Float,
     ) {
         if (loadPackageParam.packageName != Package.SYSTEMUI) return
         val dateTimeFormatter = try {
@@ -377,7 +397,13 @@ object StatusBar {
         }
         setStatusBarClockText(
             loadPackageParam,
-            doubleLineClockStyle(doubleLineClockSize, legacyDoubleLinePresetScale),
+            doubleLineClockStyle(
+                doubleLineClockSize,
+                legacyDoubleLinePresetScale,
+                useFold7CustomScale,
+                fold7TimeScale,
+                fold7DateScale,
+            ),
             doubleLineClockGapDp,
         ) {
             dateTimeFormatter.format(LocalDateTime.now())
@@ -433,7 +459,8 @@ object StatusBar {
                     val extraLineGapPx =
                         doubleLineClockGapDp.coerceIn(0f, 2f) * density
                     clockTextView.setLineSpacing(extraLineGapPx, doubleLineClockStyle.lineSpacing)
-                    clockTextView.translationY = -0.65f * density
+                    clockTextView.translationY =
+                        doubleLineClockStyle.opticalTranslationYDp * density
 
                     clockTextView.text = SpannableString(dateTime).apply {
                         if (firstLineEnd > 0) {

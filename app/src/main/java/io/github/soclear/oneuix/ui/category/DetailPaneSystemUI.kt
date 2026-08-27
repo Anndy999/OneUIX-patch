@@ -414,32 +414,132 @@ fun DetailPaneSystemUI(
                 uiState.statusBar.statusBarClockFormat.contains('\n')
         ) {
             Column {
-                val sizeLabels = listOf(
-                    stringResource(id = R.string.statusBarDoubleLineClockSize_small),
-                    stringResource(id = R.string.statusBarDoubleLineClockSize_compact),
-                    stringResource(id = R.string.statusBarDoubleLineClockSize_standard),
-                    stringResource(id = R.string.statusBarDoubleLineClockSize_large),
-                    stringResource(id = R.string.statusBarDoubleLineClockSize_extraLarge),
-                )
-                val selectedSize = uiState.statusBar.statusBarDoubleLineClockSize.ifBlank {
-                    legacyDoubleLineClockSize(uiState.statusBar.statusBarClockTextScale)
+                val isFold7 = Build.MODEL.startsWith("SM-F966", ignoreCase = true)
+                if (isFold7) {
+                    SwitchItem(
+                        icon = ImageVector.vectorResource(id = R.drawable.format_size),
+                        title = stringResource(
+                            id = R.string.fold7CustomDoubleLineClockScale_title
+                        ),
+                        summary = stringResource(
+                            id = R.string.fold7CustomDoubleLineClockScale_summary
+                        ),
+                        checked = uiState.statusBar.useFold7CustomDoubleLineClockScale,
+                        onCheckedChange = {
+                            onEvent(
+                                SystemUIEvent.StatusBar.SetFold7CustomDoubleLineClockScale(it)
+                            )
+                        }
+                    )
+                    AnimatedVisibility(uiState.statusBar.useFold7CustomDoubleLineClockScale) {
+                        Column {
+                            var timeScale by remember(
+                                uiState.statusBar.fold7DoubleLineClockTimeScale
+                            ) {
+                                mutableFloatStateOf(
+                                    uiState.statusBar.fold7DoubleLineClockTimeScale
+                                )
+                            }
+                            ListItem(
+                                headlineContent = {
+                                    Text(
+                                        text = stringResource(
+                                            id = R.string.fold7DoubleLineClockTimeScale_title
+                                        )
+                                    )
+                                },
+                                supportingContent = {
+                                    Text(
+                                        text = stringResource(
+                                            id = R.string.fold7DoubleLineClockTimeScale_summary,
+                                            timeScale,
+                                        )
+                                    )
+                                }
+                            )
+                            Slider(
+                                value = timeScale,
+                                onValueChange = { timeScale = it },
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                valueRange = 0.70f..1.10f,
+                                steps = 39,
+                                onValueChangeFinished = {
+                                    onEvent(
+                                        SystemUIEvent.StatusBar.Fold7DoubleLineClockTimeScale(
+                                            (timeScale * 100f).roundToInt() / 100f
+                                        )
+                                    )
+                                }
+                            )
+                            var dateScale by remember(
+                                uiState.statusBar.fold7DoubleLineClockDateScale
+                            ) {
+                                mutableFloatStateOf(
+                                    uiState.statusBar.fold7DoubleLineClockDateScale
+                                )
+                            }
+                            ListItem(
+                                headlineContent = {
+                                    Text(
+                                        text = stringResource(
+                                            id = R.string.fold7DoubleLineClockDateScale_title
+                                        )
+                                    )
+                                },
+                                supportingContent = {
+                                    Text(
+                                        text = stringResource(
+                                            id = R.string.fold7DoubleLineClockDateScale_summary,
+                                            dateScale,
+                                        )
+                                    )
+                                }
+                            )
+                            Slider(
+                                value = dateScale,
+                                onValueChange = { dateScale = it },
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                valueRange = 0.50f..0.90f,
+                                steps = 39,
+                                onValueChangeFinished = {
+                                    onEvent(
+                                        SystemUIEvent.StatusBar.Fold7DoubleLineClockDateScale(
+                                            (dateScale * 100f).roundToInt() / 100f
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                    }
                 }
-                val selectedIndex = DOUBLE_LINE_CLOCK_SIZE_VALUES.indexOf(
-                    selectedSize
-                ).coerceAtLeast(0)
-                SelectItem(
-                    icon = ImageVector.vectorResource(id = R.drawable.format_size),
-                    title = stringResource(id = R.string.statusBarDoubleLineClockSize_title),
-                    entries = sizeLabels,
-                    selectedIndex = selectedIndex,
-                    onSelectedIndexChange = {
-                        onEvent(
-                            SystemUIEvent.StatusBar.StatusBarDoubleLineClockSize(
-                                DOUBLE_LINE_CLOCK_SIZE_VALUES[it]
+                if (!isFold7) {
+                    val sizeLabels = listOf(
+                        stringResource(id = R.string.statusBarDoubleLineClockSize_small),
+                        stringResource(id = R.string.statusBarDoubleLineClockSize_compact),
+                        stringResource(id = R.string.statusBarDoubleLineClockSize_standard),
+                        stringResource(id = R.string.statusBarDoubleLineClockSize_large),
+                        stringResource(id = R.string.statusBarDoubleLineClockSize_extraLarge),
+                    )
+                    val selectedSize = uiState.statusBar.statusBarDoubleLineClockSize.ifBlank {
+                        legacyDoubleLineClockSize(uiState.statusBar.statusBarClockTextScale)
+                    }
+                    val selectedIndex = DOUBLE_LINE_CLOCK_SIZE_VALUES.indexOf(
+                        selectedSize
+                    ).coerceAtLeast(0)
+                    SelectItem(
+                        icon = ImageVector.vectorResource(id = R.drawable.format_size),
+                        title = stringResource(id = R.string.statusBarDoubleLineClockSize_title),
+                        entries = sizeLabels,
+                        selectedIndex = selectedIndex,
+                        onSelectedIndexChange = {
+                            onEvent(
+                                SystemUIEvent.StatusBar.StatusBarDoubleLineClockSize(
+                                    DOUBLE_LINE_CLOCK_SIZE_VALUES[it]
+                                )
                             )
                         )
-                    }
-                )
+                    )
+                }
                 var lineGapDp by remember(uiState.statusBar.doubleLineClockGapDp) {
                     mutableFloatStateOf(uiState.statusBar.doubleLineClockGapDp)
                 }
@@ -476,11 +576,13 @@ fun DetailPaneSystemUI(
                         )
                     }
                 )
-                Text(
-                    text = stringResource(id = R.string.statusBarDoubleLineClockSize_summary),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
+                if (!isFold7) {
+                    Text(
+                        text = stringResource(id = R.string.statusBarDoubleLineClockSize_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
             }
         } else {
             Column {
@@ -1182,6 +1284,15 @@ sealed interface SystemUIEvent {
         value class DoubleLineClockGapDp(val value: Float) : StatusBar
 
         @JvmInline
+        value class SetFold7CustomDoubleLineClockScale(val value: Boolean) : StatusBar
+
+        @JvmInline
+        value class Fold7DoubleLineClockTimeScale(val value: Float) : StatusBar
+
+        @JvmInline
+        value class Fold7DoubleLineClockDateScale(val value: Float) : StatusBar
+
+        @JvmInline
         value class SetStatusBarClockTextScale(val value: Boolean) : StatusBar
 
         @JvmInline
@@ -1531,6 +1642,36 @@ private fun SettingViewModel.onStatusBarEvent(event: SystemUIEvent.StatusBar) {
                     systemUI = preference.systemUI.copy(
                         statusBar = preference.systemUI.statusBar.copy(
                             doubleLineClockGapDp = event.value
+                        )
+                    )
+                )
+            }
+
+            is SystemUIEvent.StatusBar.SetFold7CustomDoubleLineClockScale -> {
+                preference.copy(
+                    systemUI = preference.systemUI.copy(
+                        statusBar = preference.systemUI.statusBar.copy(
+                            useFold7CustomDoubleLineClockScale = event.value
+                        )
+                    )
+                )
+            }
+
+            is SystemUIEvent.StatusBar.Fold7DoubleLineClockTimeScale -> {
+                preference.copy(
+                    systemUI = preference.systemUI.copy(
+                        statusBar = preference.systemUI.statusBar.copy(
+                            fold7DoubleLineClockTimeScale = event.value
+                        )
+                    )
+                )
+            }
+
+            is SystemUIEvent.StatusBar.Fold7DoubleLineClockDateScale -> {
+                preference.copy(
+                    systemUI = preference.systemUI.copy(
+                        statusBar = preference.systemUI.statusBar.copy(
+                            fold7DoubleLineClockDateScale = event.value
                         )
                     )
                 )
